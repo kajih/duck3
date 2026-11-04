@@ -35,6 +35,8 @@ export function createSqliteProfileRepository(filename: string): SqliteProfileRe
     ON CONFLICT (user_id) DO UPDATE SET nickname = excluded.nickname, emoji = excluded.emoji
   `);
 
+  const deleteByUser = db.prepare("DELETE FROM profiles WHERE user_id = ?");
+
   return {
     getByUser: (userId) => {
       const row = selectByUser.get(userId);
@@ -43,6 +45,9 @@ export function createSqliteProfileRepository(filename: string): SqliteProfileRe
     },
     save: (userId, profile) => {
       upsert.run(userId, profile.id, profile.nickname, profile.emoji);
+    },
+    remove: (userId) => {
+      deleteByUser.run(userId);
     },
     close: () => db.close(),
   };

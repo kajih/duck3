@@ -61,6 +61,62 @@ describe.each<[string, (options?: SwipeRepositoryOptions) => SwipeRepository]>([
     expect(repository.listByUser("u2")).toEqual([{ memeId: "a", direction: "nope" }]);
   });
 
+  describe("moveByUser", () => {
+    it("moves all swipes to the target user and leaves the source without any", () => {
+      const repository = createRepository();
+      repository.add("from", { memeId: "a", direction: "like" });
+      repository.add("from", { memeId: "b", direction: "nope" });
+
+      repository.moveByUser("from", "to");
+
+      expect(repository.listByUser("to")).toEqual([
+        { memeId: "a", direction: "like" },
+        { memeId: "b", direction: "nope" },
+      ]);
+      expect(repository.listByUser("from")).toEqual([]);
+    });
+
+    it("keeps the target's swipe for a meme both users swiped, without duplicates", () => {
+      const repository = createRepository();
+      repository.add("to", { memeId: "a", direction: "nope" });
+      repository.add("from", { memeId: "a", direction: "like" });
+      repository.add("from", { memeId: "b", direction: "like" });
+
+      repository.moveByUser("from", "to");
+
+      expect(repository.listByUser("to")).toEqual([
+        { memeId: "a", direction: "nope" },
+        { memeId: "b", direction: "like" },
+      ]);
+      expect(repository.countByMeme("a")).toEqual({ likes: 0, swipes: 1 });
+      expect(repository.listByUser("from")).toEqual([]);
+    });
+
+    it("keeps the time of the moved swipes", () => {
+      let time = 1_000;
+      const repository = createRepository({ now: () => time });
+      repository.add("from", { memeId: "a", direction: "like" });
+      time = 5_000;
+
+      repository.moveByUser("from", "to");
+
+      expect(repository.countAllByMemeSince(1_000)).toEqual(new Map([["a", { likes: 1, swipes: 1 }]]));
+      expect(repository.countAllByMemeSince(1_001)).toEqual(new Map());
+    });
+
+    it("leaves other users alone and does nothing for a source without swipes or the same user", () => {
+      const repository = createRepository();
+      repository.add("to", { memeId: "a", direction: "like" });
+      repository.add("other", { memeId: "b", direction: "like" });
+
+      repository.moveByUser("nobody", "to");
+      repository.moveByUser("to", "to");
+
+      expect(repository.listByUser("to")).toEqual([{ memeId: "a", direction: "like" }]);
+      expect(repository.listByUser("other")).toEqual([{ memeId: "b", direction: "like" }]);
+    });
+  });
+
   it("counts no swipes for a meme nobody has swiped", () => {
     expect(createRepository().countByMeme("a")).toEqual({ likes: 0, swipes: 0 });
   });

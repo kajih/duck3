@@ -57,6 +57,23 @@ describe.each<[string, () => ProfileRepository]>([
   });
 });
 
+describe.each<[string, () => ProfileRepository]>([
+  ["in-memory", createInMemoryProfileRepository],
+  ["SQLite in memory", () => createSqliteProfileRepository(":memory:")],
+])("%s profile repository remove", (_name, createRepository) => {
+  it("deletes only the given user's profile and tolerates an unknown user", () => {
+    const repository = createRepository();
+    repository.save("u1", otter);
+    repository.save("u2", { ...otter, id: "p2" });
+
+    repository.remove("u1");
+    repository.remove("nobody");
+
+    expect(repository.getByUser("u1")).toBeUndefined();
+    expect(repository.getByUser("u2")).toEqual({ ...otter, id: "p2" });
+  });
+});
+
 describe("SQLite profile repository file", () => {
   it("keeps profiles after the database is closed and opened again", () => {
     const file = tempDatabasePath();

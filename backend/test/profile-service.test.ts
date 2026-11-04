@@ -109,4 +109,13 @@ describe("profile service", () => {
 
     expect(service.getProfile("u1")).toEqual(before);
   });
+
+  it("discards a profile, and a later call creates a new one with a new public id", () => {
+    const service = setup();
+    const first = service.getProfile("u1");
+
+    service.discardProfile("u1");
+
+    expect(service.getProfile("u1").id).not.toBe(first.id);
+  });
 });

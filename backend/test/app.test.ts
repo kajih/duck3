@@ -479,3 +479,33 @@ describe("device links", () => {
     expect(Number(res.headers["retry-after"])).toBeGreaterThan(0);
   });
 });
+
+describe("GET /api/stats/swipes-per-minute", () => {
+  const perMinute = (app: ReturnType<typeof setup>, userId: string) =>
+    request(app).get("/api/stats/swipes-per-minute").set("X-User-Id", userId);
+
+  it("is 0 when nobody has swiped", async () => {
+    const res = await perMinute(setup(), "u1");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ swipesPerMinute: 0 });
+  });
+
+  it("counts the recent swipes of all users", async () => {
+    const app = setup();
+    const { body } = await next(app, "u1");
+    await swipe(app, "u1", { memeId: body.meme.id, direction: "like" });
+    await swipe(app, "u2", { memeId: body.meme.id, direction: "nope" });
+
+    const res = await perMinute(app, "someone-who-never-swiped");
+
+    expect(res.body).toEqual({ swipesPerMinute: 2 });
+  });
+
+  it("rejects a request without a user id", async () => {
+    const res = await request(setup()).get("/api/stats/swipes-per-minute");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: expect.any(String) });
+  });
+});

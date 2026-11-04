@@ -700,6 +700,13 @@ nav button[aria-current="page"] {
   cursor: pointer;
 }
 
+.swipe-rate {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #777;
+}
+
 .post-meme {
   padding: 1rem;
   text-align: left;

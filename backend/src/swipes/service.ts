@@ -43,6 +43,9 @@ export interface Trending {
   memes: TrendingMeme[];
 }
 
+/** The window the swipe rate counts over. */
+export const SWIPE_RATE_WINDOW_MS = 60 * 1000;
+
 export interface SwipeServiceOptions {
   /** Clock in milliseconds since the epoch, for the trending window. Defaults to Date.now. */
   now?: () => number;
@@ -73,6 +76,8 @@ export interface SwipeService {
    * the window has fewer than MIN_SWIPES_FOR_TRENDING_WINDOW swipes.
    */
   listTrending(): Trending;
+  /** How many swipes (likes and nopes) all users made in the last SWIPE_RATE_WINDOW_MS, which is one minute. */
+  getSwipesPerMinute(): number;
 }
 
 function totalSwipes(countsByMeme: Map<string, SwipeCounts>): number {
@@ -129,6 +134,10 @@ export function createSwipeService(
 
     resetSwipes(userId) {
       repository.clearByUser(userId);
+    },
+
+    getSwipesPerMinute() {
+      return totalSwipes(repository.countAllByMemeSince(now() - SWIPE_RATE_WINDOW_MS));
     },
 
     mergeSwipes(fromUserId, toUserId) {

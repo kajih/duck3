@@ -346,4 +346,66 @@ describe("swipe service", () => {
       expect(service.getNextMeme("anonymous")?.id).toBe("a");
     });
   });
+
+  describe("getSwipesPerMinute", () => {
+    // The repository stamps swipes and the service measures the window with the same controlled clock.
+    function rateSetup() {
+      let time = 1_000_000;
+      const clock = () => time;
+      const catalog = createMemeCatalog([
+        { id: "a", caption: "A", file: "a.svg" },
+        { id: "b", caption: "B", file: "b.svg" },
+      ]);
+      const service = createSwipeService(catalog, createInMemorySwipeRepository({ now: clock }), {
+        now: clock,
+      });
+      return { service, advance: (ms: number) => (time += ms) };
+    }
+
+    it("is 0 when nobody has swiped", () => {
+      expect(rateSetup().service.getSwipesPerMinute()).toBe(0);
+    });
+
+    it("counts the likes and nopes of all users", () => {
+      const { service } = rateSetup();
+      service.recordSwipe("u1", "a", "like");
+      service.recordSwipe("u1", "b", "nope");
+      service.recordSwipe("u2", "a", "like");
+
+      expect(service.getSwipesPerMinute()).toBe(3);
+    });
+
+    it("counts a swipe for exactly 60 seconds and then stops", () => {
+      const { service, advance } = rateSetup();
+      service.recordSwipe("u1", "a", "like");
+
+      advance(59_999);
+      expect(service.getSwipesPerMinute()).toBe(1);
+      advance(1);
+      expect(service.getSwipesPerMinute()).toBe(1);
+      advance(1);
+      expect(service.getSwipesPerMinute()).toBe(0);
+    });
+
+    it("counts only the swipes of the last minute", () => {
+      const { service, advance } = rateSetup();
+      service.recordSwipe("u1", "a", "like");
+      advance(45_000);
+      service.recordSwipe("u2", "a", "nope");
+      advance(30_000);
+      service.recordSwipe("u3", "b", "like");
+
+      expect(service.getSwipesPerMinute()).toBe(2);
+    });
+
+    it("does not count swipes of a user who reset", () => {
+      const { service } = rateSetup();
+      service.recordSwipe("u1", "a", "like");
+      service.recordSwipe("u2", "a", "like");
+
+      service.resetSwipes("u1");
+
+      expect(service.getSwipesPerMinute()).toBe(1);
+    });
+  });
 });

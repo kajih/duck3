@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Api from "../src/api";
-import { fetchProfile, updateProfile } from "../src/api";
+import { fetchProfile, fetchSwipesPerMinute, updateProfile } from "../src/api";
 import { App } from "../src/App";
 
 // The profile loads separately from the memes. Mocking it keeps the fetch order in these tests about memes.
 vi.mock("../src/api", async (importOriginal) => ({
   ...(await importOriginal<typeof Api>()),
   fetchProfile: vi.fn(),
+  fetchSwipesPerMinute: vi.fn(),
   updateProfile: vi.fn(),
 }));
 
@@ -30,15 +31,26 @@ const ok = (body: unknown) => ({ ok: true, json: async () => body });
 
 beforeEach(() => {
   vi.mocked(fetchProfile).mockResolvedValue(profileSettings);
+  vi.mocked(fetchSwipesPerMinute).mockResolvedValue(12);
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.mocked(fetchProfile).mockReset();
+  vi.mocked(fetchSwipesPerMinute).mockReset();
   vi.mocked(updateProfile).mockReset();
 });
 
 describe("App", () => {
+  it("shows how many swipes per minute are happening across the app", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+
+    render(<App />);
+
+    expect(await screen.findByText(/12 swipes per minute/)).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
+  });
+
   it("opens the post form without swiping on arrow keys, then returns to the refreshed swipe pile", async () => {
     const fetchMock = vi
       .fn()

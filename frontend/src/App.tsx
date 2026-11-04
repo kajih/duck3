@@ -4,6 +4,7 @@ import {
   fetchLikes,
   fetchNextMeme,
   fetchProfile,
+  fetchSwipesPerMinute,
   fetchTrending,
   redeemDeviceLink,
   resetSwipes,
@@ -22,6 +23,7 @@ import { LikesView } from "./LikesView";
 import type { LinkNotice } from "./linking";
 import { MemeCard } from "./MemeCard";
 import { ProfilePanel } from "./ProfilePanel";
+import { SwipesPerMinute } from "./SwipesPerMinute";
 import { TrendingView } from "./TrendingView";
 import { PostMeme } from "./PostMeme";
 
@@ -200,6 +202,7 @@ export function App({ linkNotice = null }: AppProps) {
       {view === "swipe" && meme && (
         <MemeCard key={meme.id} meme={meme} onSwipe={swipe} disabled={swiping} enter={enterNext} />
       )}
+      <SwipesPerMinute load={fetchSwipesPerMinute} />
       {celebration && <CelebrationBurst celebration={celebration} onDone={endCelebration} />}
     </main>
   );

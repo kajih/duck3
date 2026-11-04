@@ -9,7 +9,7 @@ A proof of concept that workshop teams fork and extend. It is an npm workspaces 
 
 ## Requirements
 
-- Node.js 22 or newer (see `.nvmrc`; run `nvm use` if you use nvm)
+- Node.js 22.13 or newer (see `.nvmrc`; run `nvm use` if you use nvm)
 - npm 10 or newer
 
 ## Quick start
@@ -44,4 +44,4 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
 
-Swipes are stored in memory (`backend/src/swipes/repository.ts`) and are lost on restart. Implement `SwipeRepository` to plug in a database.
+Swipes are stored in a SQLite file using Node's built-in `node:sqlite`, so they survive restarts. The file is `backend/data/meme-tinder.db` by default; set `DATABASE_PATH` to put it somewhere else. Delete the file to start from scratch. The storage sits behind the `SwipeRepository` interface (`backend/src/swipes/repository.ts`), so another database can be plugged in without changing the service.

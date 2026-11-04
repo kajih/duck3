@@ -7,7 +7,7 @@ export interface Swipe {
   direction: Direction;
 }
 
-/** Storage seam for swipes. Replace the in-memory implementation to use a real database. */
+/** Storage seam for swipes. The app uses the SQLite implementation (sqlite-repository.ts); tests use the in-memory one. */
 export interface SwipeRepository {
   listByUser(userId: string): Swipe[];
   add(userId: string, swipe: Swipe): void;

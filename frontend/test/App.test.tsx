@@ -105,6 +105,32 @@ describe("App", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("celebrates a streak of likes without blocking the next swipe", async () => {
+    // Reduced motion skips the entrance, which keeps this test short.
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({ matches: query === "(prefers-reduced-motion: reduce)", media: query })),
+    );
+    let n = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === "/api/swipes" ? ok({}) : ok({ meme: { ...first, id: `m${++n}`, caption: `Meme ${n}` } }),
+      ),
+    );
+    render(<App />);
+
+    for (let i = 1; i <= 5; i++) {
+      await screen.findByRole("img", { name: `Meme ${i}` });
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    }
+
+    expect(await screen.findByRole("status")).toHaveTextContent("5 likes in a row!");
+    expect(await screen.findByRole("img", { name: "Meme 6" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
+  }, 15000);
+
   it("brings in the next card with an entrance and blocks swipes until it is done", async () => {
     const fetchMock = vi
       .fn()

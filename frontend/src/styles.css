@@ -435,3 +435,195 @@ nav button[aria-current="page"] {
   margin-top: 0.15rem;
   font-size: 0.85rem;
 }
+
+/* Celebrations: confetti and a message that never block swiping or take focus. */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.celebration-message {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-weight: 800;
+  color: #5c4300;
+  background: linear-gradient(135deg, #ffe27a, #f5b700);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.celebration-milestone .celebration-message {
+  top: 40%;
+  padding: 1rem 1.5rem;
+  font-size: 1.5rem;
+  white-space: normal;
+  width: max-content;
+  max-width: 90vw;
+}
+
+.confetti span {
+  position: absolute;
+  top: -5vh;
+  width: 0.7rem;
+  height: 1.1rem;
+  border-radius: 2px;
+  animation: confetti-fall 2.4s ease-in var(--delay) both;
+}
+
+@keyframes confetti-fall {
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--x) / 4), 105vh) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.app-header h1 {
+  margin: 0.5rem 0;
+}
+
+.profile {
+  position: relative;
+}
+
+.profile-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 14rem;
+  padding: 0.35rem 0.8rem 0.35rem 0.4rem;
+  border: 2px solid #f3c4c4;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #222;
+  background: #fff;
+  cursor: pointer;
+}
+
+.profile-button span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.profile-panel {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 0.5rem;
+  width: min(20rem, calc(100vw - 2rem));
+  margin-top: 0.5rem;
+  padding: 1rem;
+  text-align: left;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.profile-panel label,
+.profile-panel legend {
+  font-weight: 600;
+}
+
+.profile-panel input:not([type="radio"]) {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.profile-panel input[aria-invalid="true"] {
+  border-color: #d64545;
+}
+
+.profile-panel fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.profile-emoji-choices {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.profile-emoji-choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  font-size: 1.4rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.profile-emoji-choice input {
+  position: absolute;
+  opacity: 0;
+}
+
+.profile-emoji-choice:has(input:checked) {
+  background: #ffe0e0;
+  outline: 2px solid #d64545;
+}
+
+.profile-emoji-choice:has(input:focus-visible) {
+  outline: 3px solid #222;
+}
+
+.profile-message {
+  margin: 0;
+  color: #b42318;
+  font-weight: 600;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.profile-actions button {
+  padding: 0.45rem 1rem;
+  border: 2px solid #d64545;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #d64545;
+  background: #fff;
+  cursor: pointer;
+}
+
+.profile-actions button[type="submit"] {
+  color: #fff;
+  background: #d64545;
+}

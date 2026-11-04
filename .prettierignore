@@ -3,3 +3,5 @@ node_modules/
 backend/data/
 package-lock.json
 backend/assets/memes/
+vision/
+.claude/

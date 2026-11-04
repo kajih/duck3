@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  createDeviceLink,
   fetchLikes,
   fetchNextMeme,
   fetchProfile,
   fetchTrending,
+  redeemDeviceLink,
   resetSwipes,
   sendSwipe,
   updateProfile,
@@ -14,15 +16,23 @@ import {
 } from "./api";
 import { CelebrationBurst } from "./CelebrationBurst";
 import { NO_PROGRESS, recordSwipe, type Celebration, type SwipeProgress } from "./celebration";
+import { DevicePanel } from "./DevicePanel";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
+import type { LinkNotice } from "./linking";
 import { MemeCard } from "./MemeCard";
 import { ProfilePanel } from "./ProfilePanel";
 import { TrendingView } from "./TrendingView";
 
 type View = "swipe" | "likes" | "trending";
 
-export function App() {
+interface AppProps {
+  /** The result of joining a profile from a device link, when the page was opened with one. */
+  linkNotice?: LinkNotice | null;
+}
+
+export function App({ linkNotice = null }: AppProps) {
+  const [notice, setNotice] = useState<LinkNotice | null>(linkNotice);
   const [view, setView] = useState<View>("swipe");
   const [meme, setMeme] = useState<Meme | null>(null);
   const [likes, setLikes] = useState<Meme[] | null>(null);
@@ -43,6 +53,19 @@ export function App() {
     const profile = await updateProfile(nickname, emoji);
     setProfileSettings((settings) => settings && { ...settings, profile });
     return profile;
+  }
+
+  /** Joins this device to another device's profile, then shows that profile's memes, likes and nickname. */
+  async function linkDevice(code: string) {
+    await redeemDeviceLink(code);
+    setNotice({ kind: "success", message: "This device is now linked to your profile." });
+    setView("swipe");
+    setLikes(null);
+    setTrending(null);
+    setEnterNext(false);
+    setProgress(NO_PROGRESS);
+    fetchProfile().then(setProfileSettings, () => {});
+    await load();
   }
 
   /** Swipes and the like streak in this session, for the celebrations. */
@@ -128,10 +151,24 @@ export function App() {
     <main>
       <header className="app-header">
         <h1>Meme-Tinder</h1>
-        {profileSettings && (
-          <ProfilePanel key={profileSettings.profile.id} settings={profileSettings} onSave={saveProfile} />
-        )}
+        <div className="header-actions">
+          <DevicePanel onCreateLink={createDeviceLink} onLink={linkDevice} />
+          {profileSettings && (
+            <ProfilePanel key={profileSettings.profile.id} settings={profileSettings} onSave={saveProfile} />
+          )}
+        </div>
       </header>
+      {notice && (
+        <p
+          role={notice.kind === "error" ? "alert" : "status"}
+          className={`link-notice link-notice-${notice.kind}`}
+        >
+          {notice.message}{" "}
+          <button type="button" onClick={() => setNotice(null)}>
+            OK
+          </button>
+        </p>
+      )}
       <nav>
         <button type="button" aria-current={view === "swipe" ? "page" : undefined} onClick={showSwipe}>
           Swipe

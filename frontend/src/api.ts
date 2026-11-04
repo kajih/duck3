@@ -1,4 +1,4 @@
-import { getUserId } from "./identity";
+import { getUserId, setUserId } from "./identity";
 
 /** How much people love a meme, across all users. */
 export interface MemeStats {
@@ -39,6 +39,13 @@ export class ApiError extends Error {
   ) {
     super(`Request failed (HTTP ${status})`);
   }
+}
+
+/** A one-time code that joins another device to this user. */
+export interface DeviceLink {
+  /** Like "K7QM-4TXD". */
+  code: string;
+  expiresInSeconds: number;
 }
 
 /** The time trending counts likes over: the last 24 hours, or all time when the last day was quiet. */
@@ -113,6 +120,25 @@ export async function updateProfile(nickname: string, emoji: string): Promise<Pr
     body: JSON.stringify({ nickname, emoji }),
   });
   return profile;
+}
+
+/** Makes a one-time code (and link) for adding another device. It replaces an earlier unused code. */
+export async function createDeviceLink(): Promise<DeviceLink> {
+  return request<DeviceLink>("/api/device-links", { method: "POST" });
+}
+
+/**
+ * Joins this device to the profile that made the code: its anonymous swipes are merged into that
+ * profile and the device uses the profile's user id from now on. Rejects with an ApiError whose
+ * serverMessage explains a used, expired or wrong code.
+ */
+export async function redeemDeviceLink(code: string): Promise<void> {
+  const { userId } = await request<{ userId: string }>("/api/device-links/redeem", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  setUserId(userId);
 }
 
 /** Removes all of the user's swipes, including likes. */

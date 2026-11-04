@@ -56,6 +56,9 @@ export function createSqliteSwipeRepository(
     "INSERT INTO swipes (user_id, meme_id, direction, swiped_at) VALUES (?, ?, ?, ?)",
   );
   const deleteByUser = db.prepare("DELETE FROM swipes WHERE user_id = ?");
+  const moveNewMemes = db.prepare(
+    "UPDATE swipes SET user_id = ? WHERE user_id = ? AND meme_id NOT IN (SELECT meme_id FROM swipes WHERE user_id = ?)",
+  );
   const countByMeme = db.prepare(
     "SELECT COUNT(*) AS swipes, COALESCE(SUM(direction = 'like'), 0) AS likes FROM swipes WHERE meme_id = ?",
   );
@@ -73,6 +76,19 @@ export function createSqliteSwipeRepository(
     },
     clearByUser: (userId) => {
       deleteByUser.run(userId);
+    },
+    moveByUser: (fromUserId, toUserId) => {
+      if (fromUserId === toUserId) return;
+      // One transaction, so a failure cannot leave the swipes half moved.
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        moveNewMemes.run(toUserId, fromUserId, toUserId);
+        deleteByUser.run(fromUserId);
+        db.exec("COMMIT");
+      } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+      }
     },
     countByMeme: (memeId): SwipeCounts => {
       const row = countByMeme.get(memeId);

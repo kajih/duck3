@@ -4,6 +4,7 @@ import path from "node:path";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createDeviceLinkService } from "../src/devices/service.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
@@ -20,12 +21,11 @@ beforeAll(() => {
 
 afterAll(() => fs.rmSync(staticDir, { recursive: true, force: true }));
 
-const setup = (options?: { staticDir?: string }) =>
-  createApp(
-    createSwipeService(createMemeCatalog(), createInMemorySwipeRepository()),
-    createProfileService(createInMemoryProfileRepository()),
-    options,
-  );
+const setup = (options?: { staticDir?: string }) => {
+  const swipes = createSwipeService(createMemeCatalog(), createInMemorySwipeRepository());
+  const profiles = createProfileService(createInMemoryProfileRepository());
+  return createApp(swipes, profiles, createDeviceLinkService({ swipes, profiles }), options);
+};
 
 describe("static frontend serving", () => {
   it("serves index.html at / and built files by path", async () => {

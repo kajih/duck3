@@ -403,4 +403,58 @@ describe("App", () => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
+
+  describe("devices", () => {
+    it("shows the result of a device link the page was opened with, and can dismiss it", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      render(<App linkNotice={{ kind: "success", message: "This device is now linked to your profile." }} />);
+
+      await screen.findByRole("img", { name: first.caption });
+      expect(screen.getByRole("status")).toHaveTextContent("now linked");
+      fireEvent.click(screen.getByRole("button", { name: "OK" }));
+
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("joins a profile with a typed code, then loads that profile's memes and nickname", async () => {
+      const otherProfile = {
+        ...profileSettings,
+        profile: { id: "public-2", nickname: "Sneaky Fox", emoji: "🦊" },
+      };
+      const fetchMock = vi.fn(async (url: string) =>
+        url === "/api/device-links/redeem"
+          ? ok({ userId: "profile-owner" })
+          : ok({ meme: url.includes("next") && fetchMock.mock.calls.length > 2 ? second : first }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+      vi.mocked(fetchProfile).mockResolvedValue(otherProfile);
+
+      fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
+      fireEvent.change(screen.getByLabelText("Code"), { target: { value: "K7QM-4TXD" } });
+      fireEvent.click(screen.getByRole("button", { name: "Link this device" }));
+
+      expect(await screen.findByRole("img", { name: second.caption })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: /Sneaky Fox/ })).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("now linked");
+      const [, init] = fetchMock.mock.calls.at(-1) as unknown as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      expect(init.headers["X-User-Id"]).toBe("profile-owner");
+    });
+
+    it("does not swipe when arrow keys are used in the code field", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(ok({ meme: first }));
+      vi.stubGlobal("fetch", fetchMock);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+      fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
+
+      fireEvent.keyDown(screen.getByLabelText("Code"), { key: "ArrowRight" });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
 });

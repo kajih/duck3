@@ -71,6 +71,9 @@ export function MemeCard({ meme, onSwipe, disabled = false, enter = false }: Mem
     if (inactive) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      // Arrow keys move the cursor in a text field (nickname, device code); they must not swipe.
+      if (event.target instanceof HTMLInputElement && event.target.type !== "radio") return;
+      if (event.target instanceof HTMLTextAreaElement) return;
       if (event.key === "ArrowRight") swipe("like");
       if (event.key === "ArrowLeft") swipe("nope");
     }

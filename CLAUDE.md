@@ -33,16 +33,16 @@ Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping
 
 Run from the repository root.
 
-| Command | What it does |
-| --- | --- |
-| `npm install` | Installs all workspaces |
-| `npm run dev` | Backend and frontend in watch mode (open http://localhost:5173) |
-| `npm test` | All backend and frontend tests (Vitest) |
-| `npm run build` | Builds both workspaces (type checks too) |
-| `STATIC_DIR=../frontend/dist npm start -w backend` | After a build, runs the production setup (one process serving API and frontend on port 3000) |
-| `npm test -w backend` / `npm test -w frontend` | Tests for one workspace |
-| `npx vitest run test/service.test.ts` (inside a workspace folder) | One test file |
-| `npx vitest run -t "test name"` (inside a workspace folder) | Tests whose name matches |
+| Command                                                           | What it does                                                                                 |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `npm install`                                                     | Installs all workspaces                                                                      |
+| `npm run dev`                                                     | Backend and frontend in watch mode (open http://localhost:5173)                              |
+| `npm test`                                                        | All backend and frontend tests (Vitest)                                                      |
+| `npm run build`                                                   | Builds both workspaces (type checks too)                                                     |
+| `STATIC_DIR=../frontend/dist npm start -w backend`                | After a build, runs the production setup (one process serving API and frontend on port 3000) |
+| `npm test -w backend` / `npm test -w frontend`                    | Tests for one workspace                                                                      |
+| `npx vitest run test/service.test.ts` (inside a workspace folder) | One test file                                                                                |
+| `npx vitest run -t "test name"` (inside a workspace folder)       | Tests whose name matches                                                                     |
 
 Run `npm test` and `npm run build` before you finish a change. There is no linter; `npm run build` is the type check.
 

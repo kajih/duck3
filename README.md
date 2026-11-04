@@ -27,11 +27,11 @@ Open http://localhost:5173, then swipe memes by dragging the card, with the Like
 
 ## Commands
 
-| Command         | What it does                                  |
-| --------------- | --------------------------------------------- |
-| `npm run dev`   | Starts backend and frontend in watch mode     |
-| `npm test`      | Runs all backend and frontend tests           |
-| `npm run build` | Builds both workspaces                        |
+| Command         | What it does                              |
+| --------------- | ----------------------------------------- |
+| `npm run dev`   | Starts backend and frontend in watch mode |
+| `npm test`      | Runs all backend and frontend tests       |
+| `npm run build` | Builds both workspaces                    |
 
 ## Guardrails
 
@@ -41,15 +41,35 @@ To make GitHub enforce this, add a branch protection rule (or ruleset) for `main
 
 ## API
 
+### Posting SVG memes
+
+The Post tab accepts an SVG image up to 5 MiB and a nonempty caption of at most 500 characters.
+Unsafe SVGs are rejected without modification: scripts, event handlers, external references,
+CSS/style attributes, embedded HTML, animation and embedded images are unsupported. Passive SVG
+shapes, text and presentation attributes are supported. Uploaded images are served as images with
+a restrictive Content Security Policy and `nosniff`.
+
+`POST /api/memes?caption=...` takes a raw `image/svg+xml` body and `X-User-Id`, returning
+`201 { "meme": { "id": "...", "caption": "...", "imageUrl": "...", "stats": { ... } } }`.
+Missing captions, invalid SVGs and files over the limit return `400 { "error": "..." }`.
+`GET /api/memes/:id` returns the meme with current statistics (`404` when unknown); its
+`imageUrl` is served by `GET /api/memes/:id/image.svg`.
+
+Uploaded and seed images are stored in the same SQLite file as swipes (`DATABASE_PATH`).
+They survive backend and Docker restarts through the existing data volume. Seed IDs remain
+stable and are inserted once, preserving existing likes. Duplicate matching is tracked in #9.
+
+### Swipe API
+
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
 
-| Endpoint                | Description                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET /api/memes/next`   | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped |
-| `POST /api/swipes`      | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
-| `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
-| `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
-| `GET /api/trending`     | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
+| Endpoint              | Description                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/memes/next` | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped                                                 |
+| `POST /api/swipes`    | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                                                                       |
+| `GET /api/likes`      | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                                                           |
+| `DELETE /api/swipes`  | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                                                                 |
+| `GET /api/trending`   | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
 
 Every meme in a response has `stats`: `{ "likes": 4, "swipes": 5, "likePercent": 80 }`, counted across all users. `likePercent` is rounded, and `null` until a meme has 5 swipes; the app then shows "New meme" instead of "80% of people loved this". A user's swipes stop counting when that user resets.
 

@@ -13,8 +13,9 @@ import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
 import { TrendingView } from "./TrendingView";
+import { PostMeme } from "./PostMeme";
 
-type View = "swipe" | "likes" | "trending";
+type View = "swipe" | "likes" | "trending" | "post";
 
 export function App() {
   const [view, setView] = useState<View>("swipe");
@@ -110,7 +111,18 @@ export function App() {
         <button type="button" aria-current={view === "trending" ? "page" : undefined} onClick={showTrending}>
           Trending
         </button>
+        <button
+          type="button"
+          aria-current={view === "post" ? "page" : undefined}
+          onClick={() => {
+            setError(null);
+            setView("post");
+          }}
+        >
+          Post
+        </button>
       </nav>
+      {view === "post" && <PostMeme />}
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
       {view === "trending" && !error && (trending ? <TrendingView trending={trending} /> : <p>Loading…</p>)}

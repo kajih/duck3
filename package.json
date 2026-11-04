@@ -2,12 +2,20 @@
   "name": "meme-tinder",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["backend", "frontend"],
-  "engines": { "node": ">=22", "npm": ">=10" },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "build": "npm run build --workspaces",
     "test": "npm test --workspaces"
   },
-  "devDependencies": { "concurrently": "^9.0.0" }
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
 }

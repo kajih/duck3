@@ -36,7 +36,18 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: { ...init.headers, "X-User-Id": getUserId() },
   });
-  if (!res.ok) throw new Error(`Request failed (HTTP ${res.status})`);
+  if (!res.ok) {
+    let message = `Request failed (HTTP ${res.status})`;
+    try {
+      const body: unknown = await res.json();
+      if (body && typeof body === "object" && "error" in body && typeof body.error === "string") {
+        message = body.error;
+      }
+    } catch {
+      // A proxy may return a non-JSON error; keep the HTTP status in that case.
+    }
+    throw new Error(message);
+  }
   return res.status === 204 ? (undefined as T) : res.json();
 }
 
@@ -68,4 +79,24 @@ export async function fetchTrending(): Promise<Trending> {
 /** Removes all of the user's swipes, including likes. */
 export async function resetSwipes(): Promise<void> {
   await request("/api/swipes", { method: "DELETE" });
+}
+
+/** FileReader works in browsers and the test DOM, including browsers without File.text(). */
+function readFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Unable to read this file. Please choose it again."));
+    reader.onabort = () => reject(new Error("Reading the file was cancelled."));
+    reader.readAsText(file, "UTF-8");
+  });
+}
+
+export async function postMeme(file: File, caption: string): Promise<Meme> {
+  const { meme } = await request<{ meme: Meme }>(`/api/memes?caption=${encodeURIComponent(caption.trim())}`, {
+    method: "POST",
+    headers: { "Content-Type": "image/svg+xml" },
+    body: await readFile(file),
+  });
+  return meme;
 }

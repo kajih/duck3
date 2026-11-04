@@ -10,6 +10,13 @@ import {
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 
 const tempDirs: string[] = [];
+const openRepositories: { close: () => void }[] = [];
+
+function trackedSqliteRepository(filename: string, options?: SwipeRepositoryOptions): SwipeRepository {
+  const repository = createSqliteSwipeRepository(filename, options);
+  openRepositories.push(repository);
+  return repository;
+}
 
 function tempDatabasePath(): string {
   const dir = mkdtempSync(path.join(tmpdir(), "meme-tinder-"));
@@ -18,14 +25,15 @@ function tempDatabasePath(): string {
 }
 
 afterEach(() => {
+  for (const repository of openRepositories.splice(0)) repository.close();
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 // Every SwipeRepository implementation must pass the same contract.
 describe.each<[string, (options?: SwipeRepositoryOptions) => SwipeRepository]>([
   ["in-memory", (options) => createInMemorySwipeRepository(options)],
-  ["SQLite in memory", (options) => createSqliteSwipeRepository(":memory:", options)],
-  ["SQLite file", (options) => createSqliteSwipeRepository(tempDatabasePath(), options)],
+  ["SQLite in memory", (options) => trackedSqliteRepository(":memory:", options)],
+  ["SQLite file", (options) => trackedSqliteRepository(tempDatabasePath(), options)],
 ])("%s swipe repository", (_name, createRepository) => {
   it("lists nothing for a user without swipes", () => {
     expect(createRepository().listByUser("u1")).toEqual([]);

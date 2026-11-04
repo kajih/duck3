@@ -5,4 +5,9 @@ services:
       dockerfile: deploy/Dockerfile
     ports:
       - "3000:3000"
+    volumes:
+      - meme-data:/data
     restart: unless-stopped
+
+volumes:
+  meme-data:

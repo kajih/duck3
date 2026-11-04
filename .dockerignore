@@ -4,3 +4,4 @@ dist
 .github
 *.tsbuildinfo
 .DS_Store
+backend/data

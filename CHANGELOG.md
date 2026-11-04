@@ -6,6 +6,8 @@
 
 ### Added
 
+- Swipes and likes survive restarts: a SQLite swipe repository using Node's built-in `node:sqlite`, stored at `backend/data/meme-tinder.db` or `DATABASE_PATH`, with a `swiped_at` time per swipe for later stats; Docker keeps it on the `meme-data` volume; the backend closes the database on SIGINT/SIGTERM; shared contract tests for every `SwipeRepository` (kajih/duck3#2)
+
 - 20 more memes (SVG assets and seed entries), bringing the catalog to 30
 
 - Agent guidance in `CLAUDE.md`: architecture, folder structure, commands, coding conventions, extension points (`SwipeRepository`, service vs. HTTP layer) and the rule that `CHANGELOG.md` is updated with every change (#8)
@@ -39,6 +41,10 @@
 - `.nvmrc` and `engines` requiring Node 22+ and npm 10+; README with requirements and quick start (#2)
 
 ### Changed
+
+- The backend requires Node 22.13 or newer (for `node:sqlite`); `deploy/README.md` now gives the correct `STATIC_DIR=../frontend/dist` for running the production setup locally (kajih/duck3#2)
+
+- `CLAUDE.md`: standard header, `PORT` env var, adding memes needs SVG and seed entry, running tests by name, frontend test config location, that the build is the type check, and how to run the production setup locally
 
 - `MemeCard` now takes `onSwipe(direction)` and owns the Like and Nope buttons, which moved out of `App`; buttons are disabled while a swipe request is in flight (#7)
 - The plain "No more memes." text is replaced by the `EmptyState` component (#5)

@@ -102,6 +102,12 @@ export async function fetchLikes(): Promise<Meme[]> {
   return memes;
 }
 
+/** How many swipes all users made in the last minute. */
+export async function fetchSwipesPerMinute(): Promise<number> {
+  const { swipesPerMinute } = await request<{ swipesPerMinute: number }>("/api/stats/swipes-per-minute");
+  return swipesPerMinute;
+}
+
 /** The memes people are loving right now, across all users. */
 export async function fetchTrending(): Promise<Trending> {
   return request<Trending>("/api/trending");

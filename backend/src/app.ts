@@ -89,6 +89,13 @@ export function createApp(
     res.json(swipeService.listTrending());
   });
 
+  // 200 with { swipesPerMinute }: swipes by all users in the last 60 seconds, the app's pulse.
+  app.get("/api/stats/swipes-per-minute", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({ swipesPerMinute: swipeService.getSwipesPerMinute() });
+  });
+
   // 200 with { profile, emojiChoices, nicknameMaxLength }. Creates a profile with a generated nickname and emoji on first use.
   app.get("/api/profile", (req, res) => {
     const userId = requireUserId(req, res);

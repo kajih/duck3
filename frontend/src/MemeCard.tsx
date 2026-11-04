@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { Direction, Meme } from "./api";
 import { MemeRating } from "./MemeRating";
 
@@ -11,6 +11,13 @@ export const SWIPE_THRESHOLD = 100;
  */
 export const SWIPE_EXIT_MS = 750;
 
+/** How long (in ms) the next card's entrance animation takes. Keep in sync with styles.css. */
+export const CARD_ENTER_MS = 350;
+
+function prefersReducedMotion(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 interface MemeCardProps {
   meme: Meme;
   /**
@@ -20,28 +27,45 @@ interface MemeCardProps {
   onSwipe: (direction: Direction) => void | Promise<void>;
   /** Ignores drags, buttons and arrow keys, e.g. while a swipe request is in flight. */
   disabled?: boolean;
+  /**
+   * Plays the entrance animation (for the card that follows a swipe) and ignores swipes until it
+   * is done. Skipped with reduced motion.
+   */
+  enter?: boolean;
 }
 
-export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
+export function MemeCard({ meme, onSwipe, disabled = false, enter = false }: MemeCardProps) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState<Direction | null>(null);
+  const [entering, setEntering] = useState(() => enter && !prefersReducedMotion());
   const startX = useRef(0);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const inactive = disabled || leaving !== null;
+  const inactive = disabled || leaving !== null || entering;
 
   useEffect(() => () => clearTimeout(exitTimer.current), []);
+
+  useEffect(() => {
+    if (!entering) return;
+    const timer = setTimeout(() => setEntering(false), CARD_ENTER_MS);
+    return () => clearTimeout(timer);
+  }, [entering]);
 
   function swipe(direction: Direction) {
     if (inactive) return;
     setLeaving(direction);
     exitTimer.current = setTimeout(() => {
       // On success the parent shows the next meme with a new card, so this only matters on failure.
-      Promise.resolve(onSwipe(direction)).finally(() => setLeaving(null));
+      Promise.resolve(onSwipe(direction)).finally(() => {
+        setLeaving(null);
+        setOffset(0);
+      });
     }, SWIPE_EXIT_MS);
   }
 
-  useEffect(() => {
+  // A layout effect attaches the listener in the same commit that shows the card, so an arrow key
+  // pressed right after the card appears is not lost (a passive effect can run a moment later).
+  useLayoutEffect(() => {
     if (inactive) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -67,9 +91,10 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
     if (!dragging) return;
     const distance = event.clientX - startX.current;
     setDragging(false);
-    setOffset(0);
+    // A swipe leaves from where the card was released; a short drag snaps back.
     if (distance >= SWIPE_THRESHOLD) swipe("like");
     else if (distance <= -SWIPE_THRESHOLD) swipe("nope");
+    else setOffset(0);
   }
 
   function onPointerCancel() {
@@ -83,14 +108,19 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
   const nopeOpacity = leaving ? (leaving === "nope" ? 1 : 0) : offset < 0 ? strength : 0;
 
   const classes = ["meme-card"];
+  if (entering) classes.push("entering");
   if (dragging) classes.push("dragging");
   if (leaving) classes.push(`leaving-${leaving}`);
+
+  // The drag position goes to CSS as variables, so a leaving card flies out from where it was
+  // released, or (with reduced motion) fades out there instead of jumping back to the middle.
+  const dragStyle = { "--drag-x": `${offset}px`, "--drag-rotate": `${offset / 20}deg` } as CSSProperties;
 
   return (
     <>
       <figure
         className={classes.join(" ")}
-        style={leaving ? undefined : { transform: `translateX(${offset}px) rotate(${offset / 20}deg)` }}
+        style={dragStyle}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

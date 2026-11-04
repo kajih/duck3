@@ -26,6 +26,8 @@ main {
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
+  /* --drag-x and --drag-rotate are set by MemeCard while dragging and kept after a drag swipe. */
+  transform: translateX(var(--drag-x, 0px)) rotate(var(--drag-rotate, 0deg));
   transition: transform 0.2s ease;
 }
 
@@ -202,16 +204,45 @@ main {
   }
 }
 
+/*
+ * The card that follows a swipe springs in from behind: it grows from smaller with a little
+ * overshoot (CARD_ENTER_MS in MemeCard.tsx). Fill "backwards" only, so the drag transform takes
+ * over again once it is done.
+ */
+.meme-card.entering {
+  animation: card-enter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  /* No stamp tool, flying card or popping imprint: the imprint appears in place and the card fades out. */
+  /*
+   * No stamp tool, flying card, popping imprint or springing card: the imprint appears in place,
+   * the card fades out and the next card simply appears.
+   */
   .stamp-tool {
     display: none;
   }
 
+  .meme-card.entering {
+    animation: none;
+  }
+
+  /* A dragged card fades out where it was released; it must not jump back to the middle. */
   .meme-card.leaving-like,
   .meme-card.leaving-nope {
-    transform: none;
-    transition: opacity 0.3s ease-in 0.45s;
+    transform: translateX(var(--drag-x, 0px)) rotate(var(--drag-rotate, 0deg));
+    /* Fade out from the moment of the swipe, over the whole SWIPE_EXIT_MS, so it never hangs still. */
+    transition: opacity 0.75s ease-in;
   }
 
   .stamp {

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SWIPE_EXIT_MS, SWIPE_THRESHOLD, MemeCard } from "../src/MemeCard";
+import { CARD_ENTER_MS, SWIPE_EXIT_MS, SWIPE_THRESHOLD, MemeCard } from "../src/MemeCard";
 
 const newMeme = { likes: 0, swipes: 0, likePercent: null };
 const meme = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg", stats: newMeme };
@@ -99,12 +99,25 @@ describe("MemeCard", () => {
 
     fireEvent.pointerDown(card, { clientX: 200, pointerId: 1 });
     fireEvent.pointerMove(card, { clientX: 250, pointerId: 1 });
-    expect(card.style.transform).toContain("translateX(50px)");
+    expect(card.style.getPropertyValue("--drag-x")).toBe("50px");
     fireEvent.pointerUp(card, { clientX: 250, pointerId: 1 });
     finishExit();
 
     expect(onSwipe).not.toHaveBeenCalled();
-    expect(card.style.transform).toContain("translateX(0px)");
+    expect(card.style.getPropertyValue("--drag-x")).toBe("0px");
+  });
+
+  it.each([
+    [160, "like", "8deg"],
+    [-160, "nope", "-8deg"],
+  ])("leaves toward the swipe direction from where a %ipx drag was released", (distance, direction, rotate) => {
+    const { card } = setup();
+
+    drag(card, distance);
+
+    expect(card).toHaveClass(`leaving-${direction}`);
+    expect(card.style.getPropertyValue("--drag-x")).toBe(`${distance}px`);
+    expect(card.style.getPropertyValue("--drag-rotate")).toBe(rotate);
   });
 
   it("swipes only once when several swipes come in before the card has left", () => {
@@ -221,15 +234,63 @@ describe("MemeCard", () => {
       const { onSwipe, card } = setup();
       onSwipe.mockReturnValue(new Promise<void>((resolve) => (settle = resolve)));
 
-      fireEvent.click(screen.getByRole("button", { name: "Like" }));
+      drag(card, 160);
       finishExit();
       expect(card).toHaveClass("leaving-like");
       await act(async () => settle());
 
       expect(card).not.toHaveClass("leaving-like");
+      expect(card.style.getPropertyValue("--drag-x")).toBe("0px");
       expect(likeStamp()).not.toBeVisible();
       expect(screen.queryByTestId("stamp-tool")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
+    });
+  });
+
+  describe("entrance", () => {
+    function setupEntering() {
+      const onSwipe = vi.fn();
+      render(<MemeCard meme={meme} onSwipe={onSwipe} enter />);
+      return { onSwipe, card: screen.getByRole("img", { name: meme.caption }).closest("figure")! };
+    }
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("does not play without enter", () => {
+      const { card } = setup();
+
+      expect(card).not.toHaveClass("entering");
+      expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
+    });
+
+    it("plays the entrance and ignores swipes until it is done", () => {
+      const { onSwipe, card } = setupEntering();
+      expect(card).toHaveClass("entering");
+      expect(screen.getByRole("button", { name: "Like" })).toBeDisabled();
+
+      fireEvent.keyDown(window, { key: "ArrowLeft" });
+      drag(card, -SWIPE_THRESHOLD * 2);
+      act(() => vi.advanceTimersByTime(CARD_ENTER_MS));
+      expect(card).not.toHaveClass("entering");
+      expect(onSwipe).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+      finishExit();
+      expect(onSwipe).toHaveBeenCalledExactlyOnceWith("like");
+    });
+
+    it("appears without animation and can be swiped right away with reduced motion", () => {
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn((query: string) => ({ matches: query === "(prefers-reduced-motion: reduce)", media: query })),
+      );
+      const { onSwipe, card } = setupEntering();
+
+      expect(card).not.toHaveClass("entering");
+      fireEvent.click(screen.getByRole("button", { name: "Like" }));
+      finishExit();
+
+      expect(onSwipe).toHaveBeenCalledExactlyOnceWith("like");
     });
   });
 });

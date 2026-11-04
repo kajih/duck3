@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 
@@ -80,6 +80,28 @@ describe("App", () => {
     finish(ok({ memeId: first.id, direction: "like" }));
 
     await screen.findByRole("img", { name: second.caption });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("brings in the next card with an entrance and blocks swipes until it is done", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ meme: first }))
+      .mockResolvedValueOnce(ok({ memeId: first.id, direction: "like" }))
+      .mockResolvedValueOnce(ok({ meme: second }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+    const firstCard = (await screen.findByRole("img", { name: first.caption })).closest("figure");
+    expect(firstCard).not.toHaveClass("entering");
+
+    fireEvent.click(screen.getByRole("button", { name: "Like" }));
+    const nextCard = (await screen.findByRole("img", { name: second.caption })).closest("figure");
+
+    expect(nextCard).toHaveClass("entering");
+    expect(screen.getByRole("button", { name: "Like" })).toBeDisabled();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Like" })).toBeEnabled());
+    expect(nextCard).not.toHaveClass("entering");
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 

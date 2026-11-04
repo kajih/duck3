@@ -5,11 +5,13 @@ import { gzipSync } from "node:zlib";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
+import { createProfileService } from "../src/profiles/service.js";
 import { createSqliteMemeRepository } from "../src/memes/repository.js";
 import { seedMemes } from "../src/memes/seed.js";
 import { seedMemeRepository } from "../src/memes/seeding.js";
 import { createMemeService } from "../src/memes/service.js";
-import { MAX_SVG_BYTES, validateSvg } from "../src/memes/svg.js";
+import { MAX_SVG_BYTES, MAX_SVG_DEPTH, MAX_SVG_ELEMENTS, validateSvg } from "../src/memes/svg.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 import { createSwipeService } from "../src/swipes/service.js";
@@ -42,7 +44,9 @@ function setup() {
   const memes = createMemeService(repository);
   const swipes = createInMemorySwipeRepository();
   const service = createSwipeService(memes, swipes);
-  const app = createApp(service, { memeService: memes });
+  const app = createApp(service, createProfileService(createInMemoryProfileRepository()), {
+    memeService: memes,
+  });
   return { app, repository, memes, swipes, service };
 }
 
@@ -142,6 +146,28 @@ describe("SVG upload service", () => {
     const image = prefix + "x".repeat(MAX_SVG_BYTES - prefix.length - suffix.length) + suffix;
     expect(Buffer.byteLength(image, "utf8")).toBe(MAX_SVG_BYTES);
     expect(() => validateSvg(image)).not.toThrow();
+  });
+
+  // Validation is synchronous: these would otherwise block the server for seconds.
+  it("accepts the maximum number of elements and rejects one more, quickly", () => {
+    const withRects = (count: number) =>
+      `<svg xmlns="http://www.w3.org/2000/svg">${'<rect width="1"/>'.repeat(count - 1)}</svg>`;
+    expect(() => validateSvg(withRects(MAX_SVG_ELEMENTS))).not.toThrow();
+
+    const started = Date.now();
+    expect(() => validateSvg(withRects(300_000))).toThrow(`at most ${MAX_SVG_ELEMENTS} elements`);
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("accepts the maximum nesting depth and rejects deeper nesting, quickly", () => {
+    const nested = (levels: number) =>
+      `<svg xmlns="http://www.w3.org/2000/svg">${"<g>".repeat(levels - 1)}${"</g>".repeat(levels - 1)}</svg>`;
+    expect(() => validateSvg(nested(MAX_SVG_DEPTH))).not.toThrow();
+    expect(() => validateSvg(nested(MAX_SVG_DEPTH + 1))).toThrow(`at most ${MAX_SVG_DEPTH} levels deep`);
+
+    const started = Date.now();
+    expect(() => validateSvg(nested(1500))).toThrow(`at most ${MAX_SVG_DEPTH} levels deep`);
+    expect(Date.now() - started).toBeLessThan(500);
   });
 
   it.each([undefined, null, 123, "", "   ", "x".repeat(501)])(

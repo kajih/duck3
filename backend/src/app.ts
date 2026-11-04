@@ -2,6 +2,12 @@ import express, { type NextFunction, type Request, type Response } from "express
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { IMAGE_PATH } from "./memes/catalog.js";
+import {
+  InvalidProfileError,
+  NICKNAME_MAX_LENGTH,
+  PROFILE_EMOJIS,
+  type ProfileService,
+} from "./profiles/service.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { UnknownMemeError, type SwipeService } from "./swipes/service.js";
 import type { MemeService } from "./memes/service.js";
@@ -29,7 +35,11 @@ export interface AppOptions {
   staticDir?: string;
 }
 
-export function createApp(swipeService: SwipeService, options: AppOptions = {}) {
+export function createApp(
+  swipeService: SwipeService,
+  profileService: ProfileService,
+  options: AppOptions = {},
+) {
   const app = express();
   app.use(express.json());
 
@@ -78,6 +88,33 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
     const userId = requireUserId(req, res);
     if (!userId) return;
     res.json(swipeService.listTrending());
+  });
+
+  // 200 with { profile, emojiChoices, nicknameMaxLength }. Creates a profile with a generated nickname and emoji on first use.
+  app.get("/api/profile", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({
+      profile: profileService.getProfile(userId),
+      emojiChoices: PROFILE_EMOJIS,
+      nicknameMaxLength: NICKNAME_MAX_LENGTH,
+    });
+  });
+
+  // 200 with { profile } after changing nickname and emoji; 400 with a user-facing error for bad input.
+  app.put("/api/profile", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    const { nickname, emoji } = req.body ?? {};
+    try {
+      res.json({ profile: profileService.updateProfile(userId, { nickname, emoji }) });
+    } catch (err) {
+      if (err instanceof InvalidProfileError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
   });
 
   // 204 No Content. Removes all of the user's swipes, including likes. Safe to repeat.

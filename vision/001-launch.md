@@ -14,7 +14,7 @@ So the good news: **the vibes are there.**
 
 The bad news: it is a toy. Last night I restarted the thing, and **every single like I had was gone.** Gone! My mum's favourites too! I have never felt so betrayed by software. A rocket ship does not forget its passengers.
 
-I don't know how any of this works under the hood, and I don't want to. I know _what_ I want it to feel like: you open it, you swipe, you laugh, you can't stop, and **nothing you love ever disappears.**
+I don't know how any of this works under the hood, and I don't want to. I know *what* I want it to feel like: you open it, you swipe, you laugh, you can't stop, and **nothing you love ever disappears.**
 
 So here are my five big bets. They are all equally important, which means they are all P0, which means I need you to do them all. 😎
 
@@ -42,7 +42,7 @@ I want to know which memes are winning. I want **numbers**.
 
 ## Big Bet 4: Feel the Swipe 💥
 
-Right now swiping works, but it doesn't _feel_ like anything. Let's make it a moment.
+Right now swiping works, but it doesn't *feel* like anything. Let's make it a moment.
 
 - When I swipe right, I want to see a big **LIKE** stamp. Left, a **NOPE** stamp. Like a real dating app.
 - The next card should arrive with some energy. Nothing boring.
@@ -66,7 +66,7 @@ I'll be honest, I haven't thought about everything:
 - What happens if somebody posts something... not nice?
 - Is "Trending" the last hour, or all time? Surprise me. I know it when I see it.
 
-If you have questions, ask me. If I don't answer in time, use your judgement. I trust you. (I trust you _a lot_. That's why this is all P0.)
+If you have questions, ask me. If I don't answer in time, use your judgement. I trust you. (I trust you *a lot*. That's why this is all P0.)
 
 ## Not now
 

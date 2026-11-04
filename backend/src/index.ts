@@ -3,6 +3,8 @@ import { createApp } from "./app.js";
 import { createSqliteMemeRepository } from "./memes/repository.js";
 import { createMemeService } from "./memes/service.js";
 import { seedMemeRepository } from "./memes/seeding.js";
+import { createSqliteProfileRepository } from "./profiles/sqlite-repository.js";
+import { createProfileService } from "./profiles/service.js";
 import { createSqliteSwipeRepository } from "./swipes/sqlite-repository.js";
 import { createSwipeService } from "./swipes/service.js";
 
@@ -18,11 +20,17 @@ seedMemeRepository(memeRepository);
 const memeService = createMemeService(memeRepository);
 const swipeService = createSwipeService(memeService, repository);
 
+// Profiles live in the same database file. They are keyed by the same secret user id, so existing swipes stay theirs.
+const profileRepository = createSqliteProfileRepository(databasePath);
+const profileService = createProfileService(profileRepository);
+
 // Set STATIC_DIR to the built frontend (frontend/dist) to serve it from this process, as the container does.
 const staticDir = process.env.STATIC_DIR;
 
-const server = createApp(swipeService, { staticDir, memeService }).listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port} (swipes stored in ${databasePath})`);
+const server = createApp(swipeService, profileService, { staticDir, memeService }).listen(port, () => {
+  console.log(
+    `Backend listening on http://localhost:${port} (swipes, memes and profiles stored in ${databasePath})`,
+  );
 });
 
 // Close the database cleanly on `docker stop`, Ctrl+C and watch-mode restarts.
@@ -31,6 +39,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     server.close();
     repository.close();
     memeRepository.close();
+    profileRepository.close();
     process.exit(0);
   });
 }

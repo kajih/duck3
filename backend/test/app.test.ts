@@ -2,13 +2,18 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
+import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
+import { createProfileService } from "../src/profiles/service.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createSwipeService } from "../src/swipes/service.js";
 
 // Every call builds fresh state, so tests are independent.
 function setup() {
   const catalog = createMemeCatalog();
-  return createApp(createSwipeService(catalog, createInMemorySwipeRepository()));
+  return createApp(
+    createSwipeService(catalog, createInMemorySwipeRepository()),
+    createProfileService(createInMemoryProfileRepository()),
+  );
 }
 
 const swipe = (app: ReturnType<typeof setup>, userId: string, body: object) =>
@@ -319,5 +324,76 @@ describe("GET /api/trending", () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: expect.any(String) });
+  });
+});
+
+describe("/api/profile", () => {
+  const getProfile = (app: ReturnType<typeof setup>, userId: string) =>
+    request(app).get("/api/profile").set("X-User-Id", userId);
+  const putProfile = (app: ReturnType<typeof setup>, userId: string, body: object) =>
+    request(app).put("/api/profile").set("X-User-Id", userId).send(body);
+
+  it("returns a generated profile and the emoji choices for a new user", async () => {
+    const res = await getProfile(setup(), "secret-user-id");
+
+    expect(res.status).toBe(200);
+    expect(res.body.profile).toEqual({
+      id: expect.any(String),
+      nickname: expect.any(String),
+      emoji: expect.any(String),
+    });
+    expect(res.body.emojiChoices).toContain(res.body.profile.emoji);
+    expect(res.body.nicknameMaxLength).toBe(24);
+  });
+
+  it("never returns the secret user id", async () => {
+    const res = await getProfile(setup(), "secret-user-id");
+
+    expect(res.body.profile.id).not.toBe("secret-user-id");
+    expect(JSON.stringify(res.body)).not.toContain("secret-user-id");
+  });
+
+  it("keeps an existing user's swipes and likes when the profile is created", async () => {
+    const app = setup();
+    const { meme } = (await next(app, "u1")).body;
+    await swipe(app, "u1", { memeId: meme.id, direction: "like" });
+
+    await getProfile(app, "u1");
+
+    expect(
+      (await request(app).get("/api/likes").set("X-User-Id", "u1")).body.memes.map(
+        (m: { id: string }) => m.id,
+      ),
+    ).toEqual([meme.id]);
+  });
+
+  it("updates nickname and emoji and keeps them", async () => {
+    const app = setup();
+    const { profile } = (await getProfile(app, "u1")).body;
+
+    const res = await putProfile(app, "u1", { nickname: "Meme Queen", emoji: "🦄" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ profile: { id: profile.id, nickname: "Meme Queen", emoji: "🦄" } });
+    expect((await getProfile(app, "u1")).body.profile).toEqual(res.body.profile);
+  });
+
+  it("rejects an invalid nickname or emoji with a message", async () => {
+    const app = setup();
+
+    const empty = await putProfile(app, "u1", { nickname: " ", emoji: "🦄" });
+    const badEmoji = await putProfile(app, "u1", { nickname: "Meme Queen", emoji: "nope" });
+
+    expect(empty.status).toBe(400);
+    expect(empty.body).toEqual({ error: "Nickname is required" });
+    expect(badEmoji.status).toBe(400);
+    expect(badEmoji.body).toEqual({ error: "Pick one of the profile pictures" });
+  });
+
+  it("rejects a missing user id", async () => {
+    const app = setup();
+
+    expect((await request(app).get("/api/profile")).status).toBe(400);
+    expect((await request(app).put("/api/profile").send({ nickname: "A", emoji: "🦄" })).status).toBe(400);
   });
 });

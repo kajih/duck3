@@ -1,6 +1,21 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Api from "../src/api";
+import { fetchProfile, updateProfile } from "../src/api";
 import { App } from "../src/App";
+
+// The profile loads separately from the memes. Mocking it keeps the fetch order in these tests about memes.
+vi.mock("../src/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof Api>()),
+  fetchProfile: vi.fn(),
+  updateProfile: vi.fn(),
+}));
+
+const profileSettings = {
+  profile: { id: "public-1", nickname: "Giggling Otter", emoji: "🦦" },
+  emojiChoices: ["🦦", "🐸", "🦄"],
+  nicknameMaxLength: 24,
+};
 
 const newMeme = { likes: 0, swipes: 0, likePercent: null };
 const first = {
@@ -13,7 +28,15 @@ const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/image
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
 
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => {
+  vi.mocked(fetchProfile).mockResolvedValue(profileSettings);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(fetchProfile).mockReset();
+  vi.mocked(updateProfile).mockReset();
+});
 
 describe("App", () => {
   it("opens the post form without swiping on arrow keys, then returns to the refreshed swipe pile", async () => {
@@ -106,6 +129,32 @@ describe("App", () => {
     await screen.findByRole("img", { name: second.caption });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it("celebrates a streak of likes without blocking the next swipe", async () => {
+    // Reduced motion skips the entrance, which keeps this test short.
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({ matches: query === "(prefers-reduced-motion: reduce)", media: query })),
+    );
+    let n = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === "/api/swipes" ? ok({}) : ok({ meme: { ...first, id: `m${++n}`, caption: `Meme ${n}` } }),
+      ),
+    );
+    render(<App />);
+
+    for (let i = 1; i <= 5; i++) {
+      await screen.findByRole("img", { name: `Meme ${i}` });
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+    }
+
+    expect(await screen.findByRole("status")).toHaveTextContent("5 likes in a row!");
+    expect(await screen.findByRole("img", { name: "Meme 6" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
+  }, 15000);
 
   it("brings in the next card with an entrance and blocks swipes until it is done", async () => {
     const fetchMock = vi
@@ -338,6 +387,39 @@ describe("App", () => {
       fireEvent.click(screen.getByRole("button", { name: "Trending" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong");
+    });
+  });
+
+  describe("profile", () => {
+    it("shows the profile's emoji and nickname in the header", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      render(<App />);
+
+      expect(await screen.findByRole("button", { name: /Giggling Otter/ })).toHaveTextContent("🦦");
+    });
+
+    it("saves a new nickname and emoji and shows them", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      vi.mocked(updateProfile).mockResolvedValue({ id: "public-1", nickname: "Meme Queen", emoji: "🦄" });
+      render(<App />);
+
+      fireEvent.click(await screen.findByRole("button", { name: /Giggling Otter/ }));
+      fireEvent.change(screen.getByLabelText("Nickname"), { target: { value: "Meme Queen" } });
+      fireEvent.click(screen.getByRole("radio", { name: "🦄" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("button", { name: /Meme Queen/ })).toHaveTextContent("🦄");
+      expect(updateProfile).toHaveBeenCalledWith("Meme Queen", "🦄");
+      expect(screen.queryByRole("form", { name: "Your profile" })).not.toBeInTheDocument();
+    });
+
+    it("keeps working without a profile when loading it fails", async () => {
+      vi.mocked(fetchProfile).mockRejectedValue(new Error("down"));
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      render(<App />);
+
+      expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
 });

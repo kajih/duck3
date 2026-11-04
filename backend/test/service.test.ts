@@ -331,4 +331,19 @@ describe("swipe service", () => {
       expect(service.listTrending().memes).toEqual([]);
     });
   });
+
+  describe("mergeSwipes", () => {
+    it("gives the target the source's swipes, and the first swipe wins for a meme both swiped", () => {
+      const service = setup();
+      service.recordSwipe("profile", "a", "nope");
+      service.recordSwipe("anonymous", "a", "like");
+      service.recordSwipe("anonymous", "b", "like");
+
+      service.mergeSwipes("anonymous", "profile");
+
+      expect(service.listLikedMemes("profile").map((meme) => meme.id)).toEqual(["b"]);
+      expect(service.getNextMeme("profile")).toBeNull();
+      expect(service.getNextMeme("anonymous")?.id).toBe("a");
+    });
+  });
 });

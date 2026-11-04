@@ -3,6 +3,7 @@ import { createApp } from "./app.js";
 import { createSqliteMemeRepository } from "./memes/repository.js";
 import { createMemeService } from "./memes/service.js";
 import { seedMemeRepository } from "./memes/seeding.js";
+import { createDeviceLinkService } from "./devices/service.js";
 import { createSqliteProfileRepository } from "./profiles/sqlite-repository.js";
 import { createProfileService } from "./profiles/service.js";
 import { createSqliteSwipeRepository } from "./swipes/sqlite-repository.js";
@@ -24,10 +25,14 @@ const swipeService = createSwipeService(memeService, repository);
 const profileRepository = createSqliteProfileRepository(databasePath);
 const profileService = createProfileService(profileRepository);
 
+// Codes that join a second device to a profile (kept in memory, they only live a few minutes).
+const deviceLinkService = createDeviceLinkService({ swipes: swipeService, profiles: profileService });
+
 // Set STATIC_DIR to the built frontend (frontend/dist) to serve it from this process, as the container does.
 const staticDir = process.env.STATIC_DIR;
 
-const server = createApp(swipeService, profileService, { staticDir, memeService }).listen(port, () => {
+const app = createApp(swipeService, profileService, deviceLinkService, { staticDir, memeService });
+const server = app.listen(port, () => {
   console.log(
     `Backend listening on http://localhost:${port} (swipes, memes and profiles stored in ${databasePath})`,
   );

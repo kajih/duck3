@@ -1,6 +1,7 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createDeviceLinkService } from "../src/devices/service.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
@@ -9,11 +10,9 @@ import { createSwipeService } from "../src/swipes/service.js";
 
 // Every call builds fresh state, so tests are independent.
 function setup() {
-  const catalog = createMemeCatalog();
-  return createApp(
-    createSwipeService(catalog, createInMemorySwipeRepository()),
-    createProfileService(createInMemoryProfileRepository()),
-  );
+  const swipes = createSwipeService(createMemeCatalog(), createInMemorySwipeRepository());
+  const profiles = createProfileService(createInMemoryProfileRepository());
+  return createApp(swipes, profiles, createDeviceLinkService({ swipes, profiles }));
 }
 
 const swipe = (app: ReturnType<typeof setup>, userId: string, body: object) =>
@@ -395,5 +394,88 @@ describe("/api/profile", () => {
 
     expect((await request(app).get("/api/profile")).status).toBe(400);
     expect((await request(app).put("/api/profile").send({ nickname: "A", emoji: "🦄" })).status).toBe(400);
+  });
+});
+
+describe("device links", () => {
+  const createLink = (app: ReturnType<typeof setup>, userId: string) =>
+    request(app).post("/api/device-links").set("X-User-Id", userId);
+  const redeem = (app: ReturnType<typeof setup>, userId: string, body: object) =>
+    request(app).post("/api/device-links/redeem").set("X-User-Id", userId).send(body);
+
+  it("creates a one-time code", async () => {
+    const res = await createLink(setup(), "phone");
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({
+      code: expect.stringMatching(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/),
+      expiresInSeconds: expect.any(Number),
+    });
+  });
+
+  it("gives a second device the same swipes, likes and profile", async () => {
+    const app = setup();
+    const { body: first } = await next(app, "phone");
+    await swipe(app, "phone", { memeId: first.meme.id, direction: "like" });
+    const { body: phoneProfile } = await request(app).get("/api/profile").set("X-User-Id", "phone");
+    const { body: link } = await createLink(app, "phone");
+
+    const res = await redeem(app, "laptop", { code: link.code });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ userId: "phone" });
+    const likes = await request(app).get("/api/likes").set("X-User-Id", res.body.userId);
+    expect(likes.body.memes.map((meme: { id: string }) => meme.id)).toEqual([first.meme.id]);
+    const profile = await request(app).get("/api/profile").set("X-User-Id", res.body.userId);
+    expect(profile.body.profile).toEqual(phoneProfile.profile);
+  });
+
+  it("merges the anonymous swipes of the new device without duplicates", async () => {
+    const app = setup();
+    const { body: first } = await next(app, "phone");
+    await swipe(app, "phone", { memeId: first.meme.id, direction: "nope" });
+    await swipe(app, "laptop", { memeId: first.meme.id, direction: "like" });
+    const { body: link } = await createLink(app, "phone");
+
+    await redeem(app, "laptop", { code: link.code });
+
+    const likes = await request(app).get("/api/likes").set("X-User-Id", "phone");
+    expect(likes.body.memes).toEqual([]);
+    const counts = await request(app).get("/api/trending").set("X-User-Id", "phone");
+    expect(counts.body.memes).toEqual([]);
+  });
+
+  it("rejects a used code with a friendly message", async () => {
+    const app = setup();
+    const { body: link } = await createLink(app, "phone");
+    await redeem(app, "laptop", { code: link.code });
+
+    const res = await redeem(app, "tablet", { code: link.code });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/used or expired/);
+  });
+
+  it("rejects a missing code and a missing user id", async () => {
+    const app = setup();
+
+    expect((await redeem(app, "laptop", {})).status).toBe(400);
+    expect((await redeem(app, "laptop", { code: 42 })).status).toBe(400);
+    expect((await request(app).post("/api/device-links")).status).toBe(400);
+    expect((await request(app).post("/api/device-links/redeem").send({ code: "AAAA-AAAA" })).status).toBe(
+      400,
+    );
+  });
+
+  it("answers 429 with Retry-After after too many wrong codes", async () => {
+    const app = setup();
+    for (let i = 0; i < 10; i++)
+      expect((await redeem(app, "laptop", { code: "AAAA-AAAA" })).status).toBe(400);
+
+    const res = await redeem(app, "laptop", { code: "AAAA-AAAA" });
+
+    expect(res.status).toBe(429);
+    expect(res.body).toEqual({ error: expect.stringMatching(/Too many/) });
+    expect(Number(res.headers["retry-after"])).toBeGreaterThan(0);
   });
 });

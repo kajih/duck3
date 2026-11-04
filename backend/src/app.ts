@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { InvalidLinkCodeError, TooManyAttemptsError, type DeviceLinkService } from "./devices/service.js";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import {
   InvalidProfileError,
@@ -38,6 +39,7 @@ export interface AppOptions {
 export function createApp(
   swipeService: SwipeService,
   profileService: ProfileService,
+  deviceLinkService: DeviceLinkService,
   options: AppOptions = {},
 ) {
   const app = express();
@@ -111,6 +113,38 @@ export function createApp(
     } catch (err) {
       if (err instanceof InvalidProfileError) {
         res.status(400).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  });
+
+  // 201 with { code, expiresInSeconds }: a one-time code (also used as a link) that joins another device to this user.
+  app.post("/api/device-links", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    const { code, expiresInSeconds } = deviceLinkService.createLink(userId);
+    res.status(201).json({ code, expiresInSeconds });
+  });
+
+  // 200 with { userId }: the id this device must use from now on. 400 for an unknown, used or expired code, 429 after too many wrong ones.
+  app.post("/api/device-links/redeem", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    const { code } = req.body ?? {};
+    if (typeof code !== "string" || !code.trim()) {
+      res.status(400).json({ error: "code is required" });
+      return;
+    }
+    try {
+      res.json(deviceLinkService.redeem(userId, code, req.ip ?? "unknown"));
+    } catch (err) {
+      if (err instanceof InvalidLinkCodeError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      if (err instanceof TooManyAttemptsError) {
+        res.set("Retry-After", String(err.retryAfterSeconds)).status(429).json({ error: err.message });
         return;
       }
       throw err;

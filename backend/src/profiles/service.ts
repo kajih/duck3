@@ -60,6 +60,8 @@ export interface ProfileService {
   getProfile(userId: string): Profile;
   /** Changes nickname and emoji. Throws InvalidProfileError with a user-facing message for bad input. */
   updateProfile(userId: string, update: ProfileUpdate): Profile;
+  /** Deletes the user's profile, for a user id that stopped being used (a device that joined another profile). */
+  discardProfile(userId: string): void;
 }
 
 export interface ProfileServiceOptions {
@@ -116,6 +118,10 @@ export function createProfileService(
       const profile = { ...getProfile(userId), nickname, emoji };
       repository.save(userId, profile);
       return profile;
+    },
+
+    discardProfile(userId) {
+      repository.remove(userId);
     },
   };
 }

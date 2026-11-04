@@ -18,6 +18,11 @@ export interface SwipeRepository {
   listByUser(userId: string): Swipe[];
   add(userId: string, swipe: Swipe): void;
   clearByUser(userId: string): void;
+  /**
+   * Moves all swipes of `fromUserId` to `toUserId`, keeping their swipe times. For a meme both users
+   * swiped, the target's swipe wins and the source's is dropped. Afterwards `fromUserId` has no swipes.
+   */
+  moveByUser(fromUserId: string, toUserId: string): void;
   /** Counts the swipes on a meme across all users. */
   countByMeme(memeId: string): SwipeCounts;
   /**
@@ -48,6 +53,15 @@ export function createInMemorySwipeRepository(options: SwipeRepositoryOptions = 
     },
     clearByUser: (userId) => {
       swipesByUser.delete(userId);
+    },
+    moveByUser: (fromUserId, toUserId) => {
+      if (fromUserId === toUserId) return;
+      const source = swipesByUser.get(fromUserId) ?? [];
+      const target = swipesByUser.get(toUserId) ?? [];
+      const taken = new Set(target.map((swipe) => swipe.memeId));
+      swipesByUser.delete(fromUserId);
+      if (source.length === 0) return;
+      swipesByUser.set(toUserId, [...target, ...source.filter((swipe) => !taken.has(swipe.memeId))]);
     },
     countByMeme: (memeId) => {
       const counts: SwipeCounts = { likes: 0, swipes: 0 };

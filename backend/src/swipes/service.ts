@@ -63,6 +63,11 @@ export interface SwipeService {
   /** Removes all of the user's swipes, including likes. Safe to call repeatedly. */
   resetSwipes(userId: string): void;
   /**
+   * Moves the swipes of `fromUserId` to `toUserId` without duplicates: for a meme both swiped, the
+   * swipe of `toUserId` is kept (the first swipe wins, as in recordSwipe). Used when a device joins a profile.
+   */
+  mergeSwipes(fromUserId: string, toUserId: string): void;
+  /**
    * The memes people are loving right now: ranked by likes in the last TRENDING_WINDOW_HOURS hours,
    * then by the share of likes in that window, then in catalog order. Falls back to all time when
    * the window has fewer than MIN_SWIPES_FOR_TRENDING_WINDOW swipes.
@@ -124,6 +129,10 @@ export function createSwipeService(
 
     resetSwipes(userId) {
       repository.clearByUser(userId);
+    },
+
+    mergeSwipes(fromUserId, toUserId) {
+      repository.moveByUser(fromUserId, toUserId);
     },
 
     listTrending() {

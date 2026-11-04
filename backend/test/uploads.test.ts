@@ -5,6 +5,7 @@ import { gzipSync } from "node:zlib";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createDeviceLinkService } from "../src/devices/service.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
 import { createSqliteMemeRepository } from "../src/memes/repository.js";
@@ -44,7 +45,8 @@ function setup() {
   const memes = createMemeService(repository);
   const swipes = createInMemorySwipeRepository();
   const service = createSwipeService(memes, swipes);
-  const app = createApp(service, createProfileService(createInMemoryProfileRepository()), {
+  const profiles = createProfileService(createInMemoryProfileRepository());
+  const app = createApp(service, profiles, createDeviceLinkService({ swipes: service, profiles }), {
     memeService: memes,
   });
   return { app, repository, memes, swipes, service };

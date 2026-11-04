@@ -10,6 +10,8 @@ export interface ProfileRepository {
   getByUser(userId: string): Profile | undefined;
   /** Creates the user's profile, or replaces it. The public id must not change once created. */
   save(userId: string, profile: Profile): void;
+  /** Deletes the user's profile, if there is one. */
+  remove(userId: string): void;
 }
 
 export function createInMemoryProfileRepository(): ProfileRepository {
@@ -21,6 +23,9 @@ export function createInMemoryProfileRepository(): ProfileRepository {
     },
     save: (userId, profile) => {
       profilesByUser.set(userId, { ...profile });
+    },
+    remove: (userId) => {
+      profilesByUser.delete(userId);
     },
   };
 }

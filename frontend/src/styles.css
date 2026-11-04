@@ -496,12 +496,13 @@ nav button[aria-current="page"] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
 .app-header h1 {
+  flex-basis: 100%;
   margin: 0.5rem 0;
 }
 
@@ -536,7 +537,8 @@ nav button[aria-current="page"] {
 
 .profile-panel {
   position: absolute;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
   display: grid;
   gap: 0.5rem;
@@ -627,6 +629,75 @@ nav button[aria-current="page"] {
 .profile-actions button[type="submit"] {
   color: #fff;
   background: #d64545;
+}
+
+.header-actions {
+  /* The panels open centered under the whole row of buttons, so they never leave the screen. */
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.header-actions .profile {
+  position: static;
+}
+
+.device-heading {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.device-help {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.device-code {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-align: center;
+  font-variant-ligatures: none;
+}
+
+.device-join {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eee;
+}
+
+.link-notice {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.link-notice-success {
+  color: #0b5d2a;
+  background: #e3f6e9;
+}
+
+.link-notice-error {
+  color: #b42318;
+  background: #fdeaea;
+}
+
+.link-notice button {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
 }
 
 .post-meme {

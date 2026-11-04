@@ -3,6 +3,8 @@ body {
   font-family: system-ui, sans-serif;
   background: #fff5f5;
   color: #222;
+  /* A card leaving the screen must not cause horizontal scrolling. */
+  overflow-x: clip;
 }
 
 main {
@@ -13,10 +15,12 @@ main {
 }
 
 .meme-card {
+  position: relative;
+  container-type: inline-size;
   margin: 0;
   background: #fff;
   border-radius: 16px;
-  overflow: hidden;
+  /* No overflow: hidden, so the stamp tool can come down from outside the card. */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   /* Let the browser keep vertical scrolling; horizontal moves go to our drag handler. */
   touch-action: pan-y;
@@ -30,10 +34,198 @@ main {
   transition: none;
 }
 
+/*
+ * Leaving: the stamp tool comes down, presses and lifts (0.45s), then the card flies out (0.3s).
+ * Together they match SWIPE_EXIT_MS in MemeCard.tsx.
+ */
+.meme-card.leaving-like,
+.meme-card.leaving-nope {
+  transition:
+    transform 0.3s ease-in 0.45s,
+    opacity 0.3s ease-in 0.45s;
+  opacity: 0;
+}
+
+.meme-card.leaving-like {
+  transform: translateX(150%) rotate(20deg);
+}
+
+.meme-card.leaving-nope {
+  transform: translateX(-150%) rotate(-20deg);
+}
+
+/*
+ * The stamp is sized from the card width (cqw, the card is a size container) so it spans the
+ * square meme image corner to corner at any screen size. It is centred on the image, not the caption.
+ */
+.stamp {
+  position: absolute;
+  top: 50cqw;
+  left: 50%;
+  padding: 0 4cqw;
+  border: 2.5cqw solid currentColor;
+  border-radius: 4cqw;
+  font-size: 28cqw;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(var(--tilt));
+  transition: opacity 0.2s ease;
+}
+
+.meme-card.dragging .stamp {
+  transition: none;
+}
+
+.stamp-like {
+  --tilt: -45deg;
+  color: #2e9e5b;
+}
+
+.stamp-nope {
+  --tilt: 45deg;
+  color: #d64545;
+}
+
+/* The imprint appears the moment the tool hits the card (45% of the tool animation). */
+.leaving-like .stamp-like,
+.leaving-nope .stamp-nope {
+  animation: stamp-imprint 0.45s linear both;
+}
+
+@keyframes stamp-imprint {
+  0%,
+  44% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1.04);
+  }
+  45% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1);
+  }
+}
+
+/*
+ * The physical rubber stamp, seen from above: a wooden block with a round knob and the inked
+ * rubber peeking out around it. It falls toward the card (shrinks, shadow tightens), presses
+ * down, and lifts away. Same centre and tilt as the imprint, so it lands right on it.
+ */
+.stamp-tool {
+  position: absolute;
+  z-index: 1;
+  top: 50cqw;
+  left: 50%;
+  width: 100cqw;
+  height: 40cqw;
+  border-radius: 4cqw;
+  background: linear-gradient(160deg, #e0aa70 0%, #b97a42 50%, #8a5528 100%);
+  box-shadow:
+    0 0 0 1.5cqw currentColor,
+    inset 0 -1.5cqw 0 rgba(0, 0, 0, 0.2),
+    inset 0 1cqw 0 rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  animation: stamp-tool 0.45s both;
+}
+
+.stamp-tool-like {
+  --tilt: -45deg;
+  color: #2e9e5b;
+}
+
+.stamp-tool-nope {
+  --tilt: 45deg;
+  color: #d64545;
+}
+
+/* Neck (::before) and knob (::after) of the handle, pointing up at the viewer. */
+.stamp-tool::before,
+.stamp-tool::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.stamp-tool::before {
+  width: 30cqw;
+  height: 30cqw;
+  background: radial-gradient(circle at 40% 40%, #a8703c, #6e4220);
+  box-shadow: 0 1cqw 2cqw rgba(0, 0, 0, 0.35);
+}
+
+.stamp-tool::after {
+  width: 20cqw;
+  height: 20cqw;
+  background: radial-gradient(circle at 35% 30%, #f3c99a, #c4864b 55%, #7a4a1f);
+  box-shadow: 0 0.5cqw 1cqw rgba(0, 0, 0, 0.4);
+}
+
+@keyframes stamp-tool {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1.9);
+    filter: drop-shadow(24px 36px 18px rgba(0, 0, 0, 0.2));
+    animation-timing-function: ease-in;
+  }
+  12% {
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1);
+    filter: drop-shadow(3px 4px 3px rgba(0, 0, 0, 0.45));
+    animation-timing-function: ease-out;
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(0.94);
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.55));
+    animation-timing-function: ease-in-out;
+  }
+  62% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1);
+    filter: drop-shadow(3px 4px 3px rgba(0, 0, 0, 0.45));
+    animation-timing-function: ease-in;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-30%, -90%) rotate(var(--tilt)) scale(1.8);
+    filter: drop-shadow(24px 36px 18px rgba(0, 0, 0, 0.2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No stamp tool, flying card or popping imprint: the imprint appears in place and the card fades out. */
+  .stamp-tool {
+    display: none;
+  }
+
+  .meme-card.leaving-like,
+  .meme-card.leaving-nope {
+    transform: none;
+    transition: opacity 0.3s ease-in 0.45s;
+  }
+
+  .stamp {
+    animation: none !important;
+    transition: none;
+  }
+}
+
 .meme-card img {
   display: block;
   width: 100%;
   aspect-ratio: 1;
+  /* The card no longer clips its children, so round the image corners here. */
+  border-radius: 16px 16px 0 0;
 }
 
 .meme-card figcaption {

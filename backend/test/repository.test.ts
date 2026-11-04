@@ -57,6 +57,31 @@ describe.each<[string, () => SwipeRepository]>([
     expect(repository.listByUser("u2")).toEqual([{ memeId: "a", direction: "nope" }]);
   });
 
+  it("counts no swipes for a meme nobody has swiped", () => {
+    expect(createRepository().countByMeme("a")).toEqual({ likes: 0, swipes: 0 });
+  });
+
+  it("counts likes and swipes on a meme across all users", () => {
+    const repository = createRepository();
+    repository.add("u1", { memeId: "a", direction: "like" });
+    repository.add("u2", { memeId: "a", direction: "nope" });
+    repository.add("u3", { memeId: "a", direction: "like" });
+    repository.add("u1", { memeId: "b", direction: "like" });
+
+    expect(repository.countByMeme("a")).toEqual({ likes: 2, swipes: 3 });
+    expect(repository.countByMeme("b")).toEqual({ likes: 1, swipes: 1 });
+  });
+
+  it("stops counting a user's swipes after they are cleared", () => {
+    const repository = createRepository();
+    repository.add("u1", { memeId: "a", direction: "like" });
+    repository.add("u2", { memeId: "a", direction: "nope" });
+
+    repository.clearByUser("u1");
+
+    expect(repository.countByMeme("a")).toEqual({ likes: 0, swipes: 1 });
+  });
+
   it("returns a copy that does not change the stored swipes", () => {
     const repository = createRepository();
     repository.add("u1", { memeId: "a", direction: "like" });

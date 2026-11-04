@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SWIPE_EXIT_MS, SWIPE_THRESHOLD, MemeCard } from "../src/MemeCard";
 
-const meme = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg" };
+const newMeme = { likes: 0, swipes: 0, likePercent: null };
+const meme = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg", stats: newMeme };
 
 function setup(disabled = false) {
   const onSwipe = vi.fn();
@@ -27,6 +28,20 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe("MemeCard", () => {
+  it("shows how much people loved the meme", () => {
+    const loved = { ...meme, stats: { likes: 87, swipes: 100, likePercent: 87 } };
+    render(<MemeCard meme={loved} onSwipe={vi.fn()} />);
+
+    expect(screen.getByText("87% of people loved this")).toBeInTheDocument();
+  });
+
+  it("shows New meme while there are too few swipes for a percentage", () => {
+    setup();
+
+    expect(screen.getByText("New meme")).toBeInTheDocument();
+    expect(screen.queryByText(/% of people loved this/)).not.toBeInTheDocument();
+  });
+
   it("shows the meme image with the caption as alt text", () => {
     setup();
 

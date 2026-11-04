@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { Direction, Meme } from "./api";
+import { MemeRating } from "./MemeRating";
 
 /** Horizontal drag distance (in px) a release must pass to count as a swipe. */
 export const SWIPE_THRESHOLD = 100;
@@ -63,7 +64,10 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
         onPointerCancel={onPointerCancel}
       >
         <img src={meme.imageUrl} alt={meme.caption} draggable={false} />
-        <figcaption>{meme.caption}</figcaption>
+        <figcaption>
+          <span>{meme.caption}</span>
+          <MemeRating stats={meme.stats} />
+        </figcaption>
       </figure>
       <div className="actions">
         <button type="button" className="nope" disabled={disabled} onClick={() => onSwipe("nope")}>

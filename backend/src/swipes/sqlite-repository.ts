@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { DIRECTIONS, type Direction, type Swipe, type SwipeRepository } from "./repository.js";
+import { DIRECTIONS, type Direction, type Swipe, type SwipeCounts, type SwipeRepository } from "./repository.js";
 
 export interface SqliteSwipeRepository extends SwipeRepository {
   /** Closes the database file. The repository cannot be used afterwards. */
@@ -22,6 +22,7 @@ const SCHEMA = `
     swiped_at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS swipes_by_user ON swipes (user_id);
+  CREATE INDEX IF NOT EXISTS swipes_by_meme ON swipes (meme_id);
 `;
 
 function toDirection(value: unknown): Direction {
@@ -48,6 +49,9 @@ export function createSqliteSwipeRepository(
   const selectByUser = db.prepare("SELECT meme_id, direction FROM swipes WHERE user_id = ? ORDER BY id");
   const insert = db.prepare("INSERT INTO swipes (user_id, meme_id, direction, swiped_at) VALUES (?, ?, ?, ?)");
   const deleteByUser = db.prepare("DELETE FROM swipes WHERE user_id = ?");
+  const countByMeme = db.prepare(
+    "SELECT COUNT(*) AS swipes, COALESCE(SUM(direction = 'like'), 0) AS likes FROM swipes WHERE meme_id = ?",
+  );
 
   return {
     listByUser: (userId) =>
@@ -59,6 +63,10 @@ export function createSqliteSwipeRepository(
     },
     clearByUser: (userId) => {
       deleteByUser.run(userId);
+    },
+    countByMeme: (memeId): SwipeCounts => {
+      const row = countByMeme.get(memeId);
+      return { likes: Number(row?.likes ?? 0), swipes: Number(row?.swipes ?? 0) };
     },
     close: () => db.close(),
   };

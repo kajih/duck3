@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
-import { createSwipeService, UnknownMemeError } from "../src/swipes/service.js";
+import { createSwipeService, MIN_SWIPES_FOR_PERCENT, UnknownMemeError } from "../src/swipes/service.js";
 
 function setup() {
   const catalog = createMemeCatalog([
@@ -119,7 +119,12 @@ describe("swipe service", () => {
       const likes = service.listLikedMemes("u1");
 
       expect(ids(likes)).toEqual(["a", "c"]);
-      expect(likes[0]).toEqual({ id: "a", caption: "A", imageUrl: expect.stringMatching(/a\.svg$/) });
+      expect(likes[0]).toEqual({
+        id: "a",
+        caption: "A",
+        imageUrl: expect.stringMatching(/a\.svg$/),
+        stats: { likes: 1, swipes: 1, likePercent: null },
+      });
       expect(service.listLikedMemes("u1")).toEqual(likes);
     });
 
@@ -147,6 +152,57 @@ describe("swipe service", () => {
       service.resetSwipes("u1");
 
       expect(service.listLikedMemes("u1")).toEqual([]);
+    });
+  });
+
+  describe("meme stats", () => {
+    // Each user swipes meme "a"; the user "viewer" has not swiped, so "a" is their next meme.
+    function swipeA(service: ReturnType<typeof setup>, directions: ("like" | "nope")[]) {
+      directions.forEach((direction, i) => service.recordSwipe(`u${i}`, "a", direction));
+    }
+    const statsOfNext = (service: ReturnType<typeof setup>) => service.getNextMeme("viewer")?.stats;
+
+    it("has no percentage for a meme nobody has swiped", () => {
+      expect(statsOfNext(setup())).toEqual({ likes: 0, swipes: 0, likePercent: null });
+    });
+
+    it("has no percentage below the minimum number of swipes", () => {
+      const service = setup();
+      swipeA(service, Array(MIN_SWIPES_FOR_PERCENT - 1).fill("like"));
+
+      expect(statsOfNext(service)).toEqual({ likes: MIN_SWIPES_FOR_PERCENT - 1, swipes: MIN_SWIPES_FOR_PERCENT - 1, likePercent: null });
+    });
+
+    it("shows the share of likes across all users from the minimum number of swipes", () => {
+      const service = setup();
+      swipeA(service, ["like", "like", "like", "like", "nope"]);
+
+      expect(statsOfNext(service)).toEqual({ likes: 4, swipes: 5, likePercent: 80 });
+    });
+
+    it("rounds the percentage to a whole number", () => {
+      const service = setup();
+      swipeA(service, ["like", "like", "like", "like", "nope", "nope"]);
+
+      expect(statsOfNext(service)?.likePercent).toBe(67);
+    });
+
+    it("stops counting a user's swipes after that user resets", () => {
+      const service = setup();
+      swipeA(service, ["like", "like", "like", "nope", "nope", "nope"]);
+      expect(statsOfNext(service)?.likePercent).toBe(50);
+
+      service.resetSwipes("u3");
+
+      expect(statsOfNext(service)).toEqual({ likes: 3, swipes: 5, likePercent: 60 });
+    });
+
+    it("does not count a repeated swipe twice", () => {
+      const service = setup();
+      service.recordSwipe("u1", "a", "like");
+      service.recordSwipe("u1", "a", "nope");
+
+      expect(statsOfNext(service)).toEqual({ likes: 1, swipes: 1, likePercent: null });
     });
   });
 });

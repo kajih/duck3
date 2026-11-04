@@ -26,7 +26,20 @@ describe("GET /api/memes/next", () => {
       id: expect.any(String),
       caption: expect.any(String),
       imageUrl: expect.stringMatching(/\.svg$/),
+      stats: { likes: 0, swipes: 0, likePercent: null },
     });
+  });
+
+  it("includes how much other users loved the meme", async () => {
+    const app = setup();
+    const { body } = await next(app, "viewer");
+    for (const [i, direction] of ["like", "like", "like", "nope", "like"].entries()) {
+      await swipe(app, `u${i}`, { memeId: body.meme.id, direction });
+    }
+
+    const res = await next(app, "viewer");
+
+    expect(res.body.meme.stats).toEqual({ likes: 4, swipes: 5, likePercent: 80 });
   });
 
   it("serves the image the meme points to", async () => {
@@ -229,7 +242,8 @@ describe("GET /api/likes", () => {
     const res = await likes(app, "u1");
 
     expect(res.status).toBe(200);
-    expect(res.body.memes).toEqual([second]);
+    // The stats now include the user's own like.
+    expect(res.body.memes).toEqual([{ ...second, stats: { likes: 1, swipes: 1, likePercent: null } }]);
   });
 
   it("returns likes in the same order every time", async () => {

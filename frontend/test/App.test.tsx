@@ -2,8 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 
-const first = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg" };
-const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/images/m2.svg" };
+const newMeme = { likes: 0, swipes: 0, likePercent: null };
+const first = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg", stats: newMeme };
+const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/images/m2.svg", stats: newMeme };
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
 

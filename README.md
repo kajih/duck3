@@ -42,6 +42,8 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 | `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
 | `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
 
+Every meme in a response has `stats`: `{ "likes": 4, "swipes": 5, "likePercent": 80 }`, counted across all users. `likePercent` is rounded, and `null` until a meme has 5 swipes; the app then shows "New meme" instead of "80% of people loved this". A user's swipes stop counting when that user resets.
+
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
 
 Swipes are stored in a SQLite file using Node's built-in `node:sqlite`, so they survive restarts. The file is `backend/data/meme-tinder.db` by default; set `DATABASE_PATH` to put it somewhere else. Delete the file to start from scratch. The storage sits behind the `SwipeRepository` interface (`backend/src/swipes/repository.ts`), so another database can be plugged in without changing the service.

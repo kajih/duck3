@@ -1,4 +1,5 @@
 import type { Meme } from "./api";
+import { MemeRating } from "./MemeRating";
 
 export function LikesView({ memes }: { memes: Meme[] }) {
   if (memes.length === 0) {
@@ -17,7 +18,10 @@ export function LikesView({ memes }: { memes: Meme[] }) {
           <li key={meme.id}>
             <figure className="meme-card">
               <img src={meme.imageUrl} alt={meme.caption} />
-              <figcaption>{meme.caption}</figcaption>
+              <figcaption>
+                <span>{meme.caption}</span>
+                <MemeRating stats={meme.stats} />
+              </figcaption>
             </figure>
           </li>
         ))}

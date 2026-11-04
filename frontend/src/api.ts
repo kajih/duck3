@@ -1,9 +1,18 @@
 import { getUserId } from "./identity";
 
+/** How much people love a meme, across all users. */
+export interface MemeStats {
+  likes: number;
+  swipes: number;
+  /** Share of swipes that were likes (0-100), or null while the meme has too few swipes to tell. */
+  likePercent: number | null;
+}
+
 export interface Meme {
   id: string;
   caption: string;
   imageUrl: string;
+  stats: MemeStats;
 }
 
 export type Direction = "like" | "nope";

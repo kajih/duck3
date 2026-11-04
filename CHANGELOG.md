@@ -40,6 +40,8 @@
 
 ### Changed
 
+- `CLAUDE.md`: standard header, `PORT` env var, adding memes needs SVG and seed entry, running tests by name, frontend test config location, that the build is the type check, and how to run the production setup locally
+
 - `MemeCard` now takes `onSwipe(direction)` and owns the Like and Nope buttons, which moved out of `App`; buttons are disabled while a swipe request is in flight (#7)
 - The plain "No more memes." text is replaced by the `EmptyState` component (#5)
 - `GET /api/memes/next` is now per user (requires `X-User-Id`) and returns `{ "meme": ... }`, with `{ "meme": null }` when all memes are swiped (#3)

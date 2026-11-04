@@ -435,3 +435,58 @@ nav button[aria-current="page"] {
   margin-top: 0.15rem;
   font-size: 0.85rem;
 }
+
+/* Celebrations: confetti and a message that never block swiping or take focus. */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.celebration-message {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-weight: 800;
+  color: #5c4300;
+  background: linear-gradient(135deg, #ffe27a, #f5b700);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.celebration-milestone .celebration-message {
+  top: 40%;
+  padding: 1rem 1.5rem;
+  font-size: 1.5rem;
+  white-space: normal;
+  width: max-content;
+  max-width: 90vw;
+}
+
+.confetti span {
+  position: absolute;
+  top: -5vh;
+  width: 0.7rem;
+  height: 1.1rem;
+  border-radius: 2px;
+  animation: confetti-fall 2.4s ease-in var(--delay) both;
+}
+
+@keyframes confetti-fall {
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--x) / 4), 105vh) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+}

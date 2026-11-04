@@ -336,7 +336,11 @@ describe("/api/profile", () => {
     const res = await getProfile(setup(), "secret-user-id");
 
     expect(res.status).toBe(200);
-    expect(res.body.profile).toEqual({ id: expect.any(String), nickname: expect.any(String), emoji: expect.any(String) });
+    expect(res.body.profile).toEqual({
+      id: expect.any(String),
+      nickname: expect.any(String),
+      emoji: expect.any(String),
+    });
     expect(res.body.emojiChoices).toContain(res.body.profile.emoji);
     expect(res.body.nicknameMaxLength).toBe(24);
   });
@@ -355,9 +359,11 @@ describe("/api/profile", () => {
 
     await getProfile(app, "u1");
 
-    expect((await request(app).get("/api/likes").set("X-User-Id", "u1")).body.memes.map((m: { id: string }) => m.id)).toEqual([
-      meme.id,
-    ]);
+    expect(
+      (await request(app).get("/api/likes").set("X-User-Id", "u1")).body.memes.map(
+        (m: { id: string }) => m.id,
+      ),
+    ).toEqual([meme.id]);
   });
 
   it("updates nickname and emoji and keeps them", async () => {
@@ -401,7 +407,10 @@ describe("device links", () => {
     const res = await createLink(setup(), "phone");
 
     expect(res.status).toBe(201);
-    expect(res.body).toEqual({ code: expect.stringMatching(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/), expiresInSeconds: expect.any(Number) });
+    expect(res.body).toEqual({
+      code: expect.stringMatching(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/),
+      expiresInSeconds: expect.any(Number),
+    });
   });
 
   it("gives a second device the same swipes, likes and profile", async () => {
@@ -453,12 +462,15 @@ describe("device links", () => {
     expect((await redeem(app, "laptop", {})).status).toBe(400);
     expect((await redeem(app, "laptop", { code: 42 })).status).toBe(400);
     expect((await request(app).post("/api/device-links")).status).toBe(400);
-    expect((await request(app).post("/api/device-links/redeem").send({ code: "AAAA-AAAA" })).status).toBe(400);
+    expect((await request(app).post("/api/device-links/redeem").send({ code: "AAAA-AAAA" })).status).toBe(
+      400,
+    );
   });
 
   it("answers 429 with Retry-After after too many wrong codes", async () => {
     const app = setup();
-    for (let i = 0; i < 10; i++) expect((await redeem(app, "laptop", { code: "AAAA-AAAA" })).status).toBe(400);
+    for (let i = 0; i < 10; i++)
+      expect((await redeem(app, "laptop", { code: "AAAA-AAAA" })).status).toBe(400);
 
     const res = await redeem(app, "laptop", { code: "AAAA-AAAA" });
 

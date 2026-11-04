@@ -85,7 +85,9 @@ describe("DevicePanel", () => {
   it("shows the server's friendly message for a bad code and stays open", async () => {
     renderPanel(
       undefined,
-      vi.fn().mockRejectedValue(new ApiError(400, "That code does not work. It may have been used or expired.")),
+      vi
+        .fn()
+        .mockRejectedValue(new ApiError(400, "That code does not work. It may have been used or expired.")),
     );
 
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "AAAA-AAAA" } });

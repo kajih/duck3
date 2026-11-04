@@ -19,7 +19,11 @@ describe("profile service", () => {
   it("gives a user without a profile a generated nickname and emoji", () => {
     const profile = setup().getProfile("u1");
 
-    expect(profile).toEqual({ id: "public-1", nickname: expect.stringMatching(/^\S+ \S+$/), emoji: PROFILE_EMOJIS[0] });
+    expect(profile).toEqual({
+      id: "public-1",
+      nickname: expect.stringMatching(/^\S+ \S+$/),
+      emoji: PROFILE_EMOJIS[0],
+    });
   });
 
   it("keeps the same profile, including the public id, on later calls", () => {
@@ -42,7 +46,9 @@ describe("profile service", () => {
 
   it("generates varied nicknames and emojis", () => {
     let call = 0;
-    const service = createProfileService(createInMemoryProfileRepository(), { randomInt: (max) => call++ % max });
+    const service = createProfileService(createInMemoryProfileRepository(), {
+      randomInt: (max) => call++ % max,
+    });
 
     const nicknames = new Set(["u1", "u2", "u3"].map((user) => service.getProfile(user).nickname));
 
@@ -70,7 +76,9 @@ describe("profile service", () => {
   });
 
   it("trims and collapses whitespace in the nickname", () => {
-    expect(setup().updateProfile("u1", { nickname: "  Meme   Queen ", emoji: "🦄" }).nickname).toBe("Meme Queen");
+    expect(setup().updateProfile("u1", { nickname: "  Meme   Queen ", emoji: "🦄" }).nickname).toBe(
+      "Meme Queen",
+    );
   });
 
   it("accepts a nickname of the maximum length, counting emoji as one character", () => {
@@ -92,14 +100,15 @@ describe("profile service", () => {
     expect(() => service.updateProfile("u1", { nickname, emoji: "🦄" })).toThrow(message);
   });
 
-  it.each([["missing", undefined], ["not in the list", "💩"], ["text", "otter"]])(
-    "rejects an emoji that is %s",
-    (_case, emoji) => {
-      expect(() => setup().updateProfile("u1", { nickname: "Meme Queen", emoji })).toThrow(
-        "Pick one of the profile pictures",
-      );
-    },
-  );
+  it.each([
+    ["missing", undefined],
+    ["not in the list", "💩"],
+    ["text", "otter"],
+  ])("rejects an emoji that is %s", (_case, emoji) => {
+    expect(() => setup().updateProfile("u1", { nickname: "Meme Queen", emoji })).toThrow(
+      "Pick one of the profile pictures",
+    );
+  });
 
   it("does not change the profile when an update is rejected", () => {
     const service = setup();

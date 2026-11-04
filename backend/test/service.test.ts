@@ -177,7 +177,11 @@ describe("swipe service", () => {
       const service = setup();
       swipeA(service, Array(MIN_SWIPES_FOR_PERCENT - 1).fill("like"));
 
-      expect(statsOfNext(service)).toEqual({ likes: MIN_SWIPES_FOR_PERCENT - 1, swipes: MIN_SWIPES_FOR_PERCENT - 1, likePercent: null });
+      expect(statsOfNext(service)).toEqual({
+        likes: MIN_SWIPES_FOR_PERCENT - 1,
+        swipes: MIN_SWIPES_FOR_PERCENT - 1,
+        likePercent: null,
+      });
     });
 
     it("shows the share of likes across all users from the minimum number of swipes", () => {
@@ -221,8 +225,12 @@ describe("swipe service", () => {
     function trendingSetup(memeIds = ["a", "b", "c"]) {
       let time = NOW;
       const clock = () => time;
-      const catalog = createMemeCatalog(memeIds.map((id) => ({ id, caption: id.toUpperCase(), file: `${id}.svg` })));
-      const service = createSwipeService(catalog, createInMemorySwipeRepository({ now: clock }), { now: clock });
+      const catalog = createMemeCatalog(
+        memeIds.map((id) => ({ id, caption: id.toUpperCase(), file: `${id}.svg` })),
+      );
+      const service = createSwipeService(catalog, createInMemorySwipeRepository({ now: clock }), {
+        now: clock,
+      });
       let user = 0;
       // Each swipe comes from a new user, at the given time.
       const swipeAt = (at: number, memeId: string, direction: "like" | "nope", times = 1) => {
@@ -279,7 +287,10 @@ describe("swipe service", () => {
 
       expect(trending.window).toBe("all-time");
       expect(ids(trending.memes)).toEqual(["a", "b"]);
-      expect(trending.memes.map((meme) => meme.windowLikes)).toEqual([20, MIN_SWIPES_FOR_TRENDING_WINDOW - 1]);
+      expect(trending.memes.map((meme) => meme.windowLikes)).toEqual([
+        20,
+        MIN_SWIPES_FOR_TRENDING_WINDOW - 1,
+      ]);
     });
 
     it("breaks ties on likes by the share of likes, then by catalog order", () => {

@@ -159,7 +159,10 @@ export function App({ linkNotice = null }: AppProps) {
         </div>
       </header>
       {notice && (
-        <p role={notice.kind === "error" ? "alert" : "status"} className={`link-notice link-notice-${notice.kind}`}>
+        <p
+          role={notice.kind === "error" ? "alert" : "status"}
+          className={`link-notice link-notice-${notice.kind}`}
+        >
           {notice.message}{" "}
           <button type="button" onClick={() => setNotice(null)}>
             OK

@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22", "npm": ">=10" },
+  "engines": {
+    "node": ">=22.13",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

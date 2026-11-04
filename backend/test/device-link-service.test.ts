@@ -36,7 +36,11 @@ describe("device link service", () => {
   it("makes a code from easy-to-read characters that expires after a few minutes", () => {
     const link = setup().devices.createLink("phone");
 
-    expect(link.code).toMatch(new RegExp(`^[${LINK_CODE_ALPHABET}]{${LINK_CODE_LENGTH / 2}}-[${LINK_CODE_ALPHABET}]{${LINK_CODE_LENGTH / 2}}$`));
+    expect(link.code).toMatch(
+      new RegExp(
+        `^[${LINK_CODE_ALPHABET}]{${LINK_CODE_LENGTH / 2}}-[${LINK_CODE_ALPHABET}]{${LINK_CODE_LENGTH / 2}}$`,
+      ),
+    );
     expect(link.expiresInSeconds).toBe(LINK_CODE_TTL_MS / 1000);
     expect(LINK_CODE_TTL_MS).toBeLessThanOrEqual(10 * 60 * 1000);
   });
@@ -59,7 +63,9 @@ describe("device link service", () => {
     const { devices } = setup();
     const { code } = devices.createLink("phone");
 
-    expect(devices.redeem("laptop", code.replace("-", " ").toLowerCase(), attempt)).toEqual({ userId: "phone" });
+    expect(devices.redeem("laptop", code.replace("-", " ").toLowerCase(), attempt)).toEqual({
+      userId: "phone",
+    });
   });
 
   it("works only once", () => {
@@ -140,7 +146,8 @@ describe("device link service", () => {
 
   describe("rate limit", () => {
     function failTimes(devices: ReturnType<typeof setup>["devices"], times: number) {
-      for (let i = 0; i < times; i++) expect(() => devices.redeem("laptop", "AAAA-AAAA", attempt)).toThrow(InvalidLinkCodeError);
+      for (let i = 0; i < times; i++)
+        expect(() => devices.redeem("laptop", "AAAA-AAAA", attempt)).toThrow(InvalidLinkCodeError);
     }
 
     it("refuses a caller after too many wrong codes, even for the right code", () => {
@@ -181,7 +188,9 @@ describe("device link service", () => {
     it("does not count right codes", () => {
       const { devices } = setup();
       for (let i = 0; i < MAX_FAILED_ATTEMPTS + 2; i++) {
-        expect(devices.redeem(`device-${i}`, devices.createLink(`owner-${i}`).code, attempt)).toEqual({ userId: `owner-${i}` });
+        expect(devices.redeem(`device-${i}`, devices.createLink(`owner-${i}`).code, attempt)).toEqual({
+          userId: `owner-${i}`,
+        });
       }
     });
   });

@@ -108,7 +108,12 @@ export function DevicePanel({ onCreateLink, onLink }: DevicePanelProps) {
           {link && !expired ? (
             <>
               <label htmlFor={linkFieldId}>Link</label>
-              <input id={linkFieldId} readOnly value={deviceLinkUrl(link.code)} onFocus={(event) => event.target.select()} />
+              <input
+                id={linkFieldId}
+                readOnly
+                value={deviceLinkUrl(link.code)}
+                onFocus={(event) => event.target.select()}
+              />
               <p className="device-code" aria-label={`Code ${link.code.split("").join(" ")}`}>
                 {link.code}
               </p>
@@ -121,7 +126,11 @@ export function DevicePanel({ onCreateLink, onLink }: DevicePanelProps) {
                   New code
                 </button>
               </div>
-              {copied && <p role="status" className="device-help">Link copied</p>}
+              {copied && (
+                <p role="status" className="device-help">
+                  Link copied
+                </p>
+              )}
             </>
           ) : (
             <>

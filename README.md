@@ -27,32 +27,37 @@ Open http://localhost:5173, then swipe memes by dragging the card, with the Like
 
 ## Commands
 
-| Command         | What it does                                  |
-| --------------- | --------------------------------------------- |
-| `npm run dev`   | Starts backend and frontend in watch mode     |
-| `npm test`      | Runs all backend and frontend tests           |
-| `npm run build` | Builds both workspaces                        |
+| Command                | What it does                                  |
+| ---------------------- | --------------------------------------------- |
+| `npm run dev`          | Starts backend and frontend in watch mode     |
+| `npm test`             | Runs all backend and frontend tests           |
+| `npm run build`        | Builds both workspaces                        |
+| `npm run lint`         | Checks TypeScript conventions and React hooks |
+| `npm run format`       | Applies shared formatting                     |
+| `npm run format:check` | Checks shared formatting                      |
 
 ## Guardrails
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm ci`, `npm test` and `npm run build` on every pull request and on every push to `main`, with the Node version from `.nvmrc`. A failing test or a type error turns the check red. **Merge only with a green check.**
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm ci`, `npm run lint`, `npm run format:check`, `npm test` and `npm run build` on every pull request and on every push to `main`, with the Node version from `.nvmrc`. A lint error, unformatted code, a failing test or a type error turns the check red. **Merge only with a green check.**
 
 To make GitHub enforce this, add a branch protection rule (or ruleset) for `main`: Settings → Branches → Add branch protection rule, branch name pattern `main`, tick "Require status checks to pass before merging" and pick the `Test and build` check (it shows up after the workflow has run once). In a fork, also enable Actions under the Actions tab and change the badge URL at the top of this README to your repository.
+
+Run `npm run lint` and `npm run format:check` before opening a PR; use `npm run format` to apply formatting. Files that come from upstream (`vision/`, `.claude/`) are not formatted or checked, so syncing from upstream cannot break the check.
 
 ## API
 
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
 
-| Endpoint                | Description                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET /api/memes/next`   | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped |
-| `POST /api/swipes`      | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
-| `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
-| `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
-| `GET /api/trending`     | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
-| `GET /api/profile`     | `200 { "profile": { "id", "nickname", "emoji" }, "emojiChoices": [...], "nicknameMaxLength": 24 }`. A user without a profile gets one with a generated nickname and emoji |
-| `PUT /api/profile`     | Body `{ "nickname": "...", "emoji": "🦄" }`. `200 { "profile": {...} }`; `400` with a user-facing `error` for an empty or too long nickname or an emoji not in `emojiChoices` |
-| `POST /api/device-links` | `201 { "code": "K7QM-4TXD", "expiresInSeconds": 300 }`: a one-time code for adding another device to this user. A new code replaces the user's earlier unused one |
+| Endpoint                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/memes/next`           | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped                                                                                                                                                                                                                                                                                                                                                  |
+| `POST /api/swipes`              | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                                                                                                                                                                                                                                                                                                                                                                        |
+| `GET /api/likes`                | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                                                                                                                                                                                                                                                                                                                                                            |
+| `DELETE /api/swipes`            | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                                                                                                                                                                                                                                                                                                                                                                  |
+| `GET /api/trending`             | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes`                                                                                                                                                                                                                                                                                                  |
+| `GET /api/profile`              | `200 { "profile": { "id", "nickname", "emoji" }, "emojiChoices": [...], "nicknameMaxLength": 24 }`. A user without a profile gets one with a generated nickname and emoji                                                                                                                                                                                                                                                                                     |
+| `PUT /api/profile`              | Body `{ "nickname": "...", "emoji": "🦄" }`. `200 { "profile": {...} }`; `400` with a user-facing `error` for an empty or too long nickname or an emoji not in `emojiChoices`                                                                                                                                                                                                                                                                                 |
+| `POST /api/device-links`        | `201 { "code": "K7QM-4TXD", "expiresInSeconds": 300 }`: a one-time code for adding another device to this user. A new code replaces the user's earlier unused one                                                                                                                                                                                                                                                                                             |
 | `POST /api/device-links/redeem` | Body `{ "code": "K7QM-4TXD" }` (any case, dash optional), sent with the new device's own `X-User-Id`. `200 { "userId": "..." }`: the id the device must use from now on, after its anonymous swipes were merged into that user (their swipe wins for a meme both swiped) and its own profile was dropped. `400` with a friendly `error` for an unknown, used or expired code, `429` with `Retry-After` after 10 wrong codes from one IP address in 15 minutes |
 
 Every meme in a response has `stats`: `{ "likes": 4, "swipes": 5, "likePercent": 80 }`, counted across all users. `likePercent` is rounded, and `null` until a meme has 5 swipes; the app then shows "New meme" instead of "80% of people loved this". A user's swipes stop counting when that user resets.

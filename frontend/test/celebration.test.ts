@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Direction } from "../src/api";
-import { MILESTONE_SWIPES, NO_PROGRESS, STREAK_LENGTH, recordSwipe, type Celebration } from "../src/celebration";
+import {
+  MILESTONE_SWIPES,
+  NO_PROGRESS,
+  STREAK_LENGTH,
+  recordSwipe,
+  type Celebration,
+} from "../src/celebration";
 
 /** Swipes in order and returns the celebration (or null) each swipe earned. */
 function swipeAll(directions: Direction[]): (Celebration | null)[] {
@@ -43,7 +49,10 @@ describe("recordSwipe", () => {
   });
 
   it("shows the milestone instead of a streak that ends on the 100th swipe", () => {
-    const results = swipeAll([...Array<Direction>(MILESTONE_SWIPES - STREAK_LENGTH).fill("nope"), ...likes(STREAK_LENGTH)]);
+    const results = swipeAll([
+      ...Array<Direction>(MILESTONE_SWIPES - STREAK_LENGTH).fill("nope"),
+      ...likes(STREAK_LENGTH),
+    ]);
 
     expect(results.at(-1)).toEqual({ kind: "milestone", swipes: MILESTONE_SWIPES });
   });

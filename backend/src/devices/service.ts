@@ -15,7 +15,9 @@ export const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 /** The code is unknown, already used or expired. One error for all three, so guessing learns nothing. */
 export class InvalidLinkCodeError extends Error {
   constructor() {
-    super("That code does not work. It may have been used or expired. Ask for a new one on your other device.");
+    super(
+      "That code does not work. It may have been used or expired. Ask for a new one on your other device.",
+    );
   }
 }
 
@@ -86,7 +88,9 @@ export function createDeviceLinkService(
 
   /** The failures of one caller that still count, oldest first. */
   function recentFailures(attemptKey: string): number[] {
-    const recent = (failuresByCaller.get(attemptKey) ?? []).filter((time) => time > now() - ATTEMPT_WINDOW_MS);
+    const recent = (failuresByCaller.get(attemptKey) ?? []).filter(
+      (time) => time > now() - ATTEMPT_WINDOW_MS,
+    );
     if (recent.length > 0) failuresByCaller.set(attemptKey, recent);
     else failuresByCaller.delete(attemptKey);
     return recent;
@@ -100,7 +104,10 @@ export function createDeviceLinkService(
 
   function newCode(): string {
     for (;;) {
-      const code = Array.from({ length: LINK_CODE_LENGTH }, () => LINK_CODE_ALPHABET[random(LINK_CODE_ALPHABET.length)]).join("");
+      const code = Array.from(
+        { length: LINK_CODE_LENGTH },
+        () => LINK_CODE_ALPHABET[random(LINK_CODE_ALPHABET.length)],
+      ).join("");
       if (!ownerByCode.has(code)) return code;
     }
   }

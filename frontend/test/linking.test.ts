@@ -53,7 +53,10 @@ describe("redeemLinkFromUrl", () => {
 
     const notice = await redeemLinkFromUrl();
 
-    expect(notice).toEqual({ kind: "error", message: "That code does not work. It may have been used or expired." });
+    expect(notice).toEqual({
+      kind: "error",
+      message: "That code does not work. It may have been used or expired.",
+    });
     expect(getUserId()).toBe(anonymous);
     expect(window.location.search).toBe("");
   });
@@ -62,6 +65,9 @@ describe("redeemLinkFromUrl", () => {
     window.history.replaceState(null, "", "/?link=K7QM-4TXD");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
 
-    expect(await redeemLinkFromUrl()).toEqual({ kind: "error", message: expect.stringContaining("Could not link") });
+    expect(await redeemLinkFromUrl()).toEqual({
+      kind: "error",
+      message: expect.stringContaining("Could not link"),
+    });
   });
 });

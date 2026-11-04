@@ -1,11 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  InvalidLinkCodeError,
-  TooManyAttemptsError,
-  type DeviceLinkService,
-} from "./devices/service.js";
+import { InvalidLinkCodeError, TooManyAttemptsError, type DeviceLinkService } from "./devices/service.js";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import {
   InvalidProfileError,

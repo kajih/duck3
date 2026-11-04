@@ -15,7 +15,9 @@ export const SWIPE_EXIT_MS = 750;
 export const CARD_ENTER_MS = 350;
 
 function prefersReducedMotion(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return (
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
 interface MemeCardProps {

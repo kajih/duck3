@@ -32,7 +32,10 @@ export async function redeemLinkFromUrl(): Promise<LinkNotice | null> {
   } catch (err) {
     return {
       kind: "error",
-      message: err instanceof ApiError && err.serverMessage ? err.serverMessage : "Could not link this device. Try again.",
+      message:
+        err instanceof ApiError && err.serverMessage
+          ? err.serverMessage
+          : "Could not link this device. Try again.",
     };
   }
 }

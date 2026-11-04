@@ -50,7 +50,9 @@ export function ProfilePanel({ settings, onSave }: ProfilePanelProps) {
       await onSave(nickname, emoji);
       setOpen(false);
     } catch (err) {
-      setMessage(err instanceof ApiError && err.serverMessage ? err.serverMessage : "Could not save your profile");
+      setMessage(
+        err instanceof ApiError && err.serverMessage ? err.serverMessage : "Could not save your profile",
+      );
     } finally {
       setSaving(false);
     }

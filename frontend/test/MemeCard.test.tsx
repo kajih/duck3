@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CARD_ENTER_MS, SWIPE_EXIT_MS, SWIPE_THRESHOLD, MemeCard } from "../src/MemeCard";
 
 const newMeme = { likes: 0, swipes: 0, likePercent: null };
-const meme = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg", stats: newMeme };
+const meme = {
+  id: "m1",
+  caption: "It works on my machine",
+  imageUrl: "/api/memes/images/m1.svg",
+  stats: newMeme,
+};
 
 function setup(disabled = false) {
   const onSwipe = vi.fn();
@@ -110,15 +115,18 @@ describe("MemeCard", () => {
   it.each([
     [160, "like", "8deg"],
     [-160, "nope", "-8deg"],
-  ])("leaves toward the swipe direction from where a %ipx drag was released", (distance, direction, rotate) => {
-    const { card } = setup();
+  ])(
+    "leaves toward the swipe direction from where a %ipx drag was released",
+    (distance, direction, rotate) => {
+      const { card } = setup();
 
-    drag(card, distance);
+      drag(card, distance);
 
-    expect(card).toHaveClass(`leaving-${direction}`);
-    expect(card.style.getPropertyValue("--drag-x")).toBe(`${distance}px`);
-    expect(card.style.getPropertyValue("--drag-rotate")).toBe(rotate);
-  });
+      expect(card).toHaveClass(`leaving-${direction}`);
+      expect(card.style.getPropertyValue("--drag-x")).toBe(`${distance}px`);
+      expect(card.style.getPropertyValue("--drag-rotate")).toBe(rotate);
+    },
+  );
 
   it("swipes only once when several swipes come in before the card has left", () => {
     const { onSwipe } = setup();

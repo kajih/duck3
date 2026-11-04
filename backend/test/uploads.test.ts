@@ -161,6 +161,17 @@ describe("SVG upload service", () => {
     expect(Date.now() - started).toBeLessThan(500);
   });
 
+  it("counts nesting depth correctly with self-closing elements, comments and > inside attributes", () => {
+    // The root, `groups` groups with a ">" in an attribute, and a self-closing rect at the bottom.
+    const nested = (groups: number) =>
+      `<svg xmlns="http://www.w3.org/2000/svg">${'<g data-x="a>b"><!-- <g> -->'.repeat(groups)}<rect width="1"/>${"</g>".repeat(groups)}</svg>`;
+    expect(() => validateSvg(nested(MAX_SVG_DEPTH - 2))).not.toThrow();
+    expect(() => validateSvg(nested(MAX_SVG_DEPTH - 1))).toThrow("levels deep");
+
+    const siblings = `<svg xmlns="http://www.w3.org/2000/svg">${'<g data-x="a>b"/><rect width="1"/>'.repeat(500)}</svg>`;
+    expect(() => validateSvg(siblings)).not.toThrow();
+  });
+
   it("accepts the maximum nesting depth and rejects deeper nesting, quickly", () => {
     const nested = (levels: number) =>
       `<svg xmlns="http://www.w3.org/2000/svg">${"<g>".repeat(levels - 1)}${"</g>".repeat(levels - 1)}</svg>`;

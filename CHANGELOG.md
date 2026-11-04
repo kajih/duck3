@@ -6,6 +6,7 @@
 
 ### Added
 
+- Trending tab next to Likes with the top 10 memes people are loving right now: ranked by likes in the last 24 hours (falling back to all time when there were fewer than 10 swipes that day, and saying so on the page), with likes in the window, the like percentage, and gold, silver and bronze ranks; `GET /api/trending` and `SwipeRepository.countAllByMemeSince`, with a `swiped_at` index in SQLite and swipe times in the in-memory repository too (kajih/duck3#12)
 - Every meme card and liked meme shows how much people love it, for example "87% of people loved this", or "New meme" below 5 swipes; memes from `GET /api/memes/next` and `GET /api/likes` include `stats` (`likes`, `swipes`, `likePercent`) counted across all users, and `SwipeRepository` has `countByMeme` (kajih/duck3#11)
 - LIKE and NOPE stamps on the swipe card, large and diagonal across the meme image (sized from the card width): while dragging, the matching stamp fades in with the drag distance, and after a drag, button or arrow-key swipe a physical rubber stamp (wooden block and knob, seen from above) comes down, presses the stamp onto the meme and lifts away before the card flies out. Stamps and the stamp tool are `aria-hidden`, and with `prefers-reduced-motion` there is no stamp tool, the stamp appears in place and the card fades instead of flying. CSS only, no animation library (kajih/duck3#5)
 - Testing Library tests for which stamp shows for each direction and swipe input, the stamp tool, and the card coming back after a failed swipe (kajih/duck3#5)

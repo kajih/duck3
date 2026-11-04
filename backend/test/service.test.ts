@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
-import { createSwipeService, MIN_SWIPES_FOR_PERCENT, UnknownMemeError } from "../src/swipes/service.js";
+import {
+  createSwipeService,
+  MIN_SWIPES_FOR_PERCENT,
+  MIN_SWIPES_FOR_TRENDING_WINDOW,
+  TRENDING_LIMIT,
+  TRENDING_WINDOW_HOURS,
+  UnknownMemeError,
+} from "../src/swipes/service.js";
 
 function setup() {
   const catalog = createMemeCatalog([
@@ -203,6 +210,114 @@ describe("swipe service", () => {
       service.recordSwipe("u1", "a", "nope");
 
       expect(statsOfNext(service)).toEqual({ likes: 1, swipes: 1, likePercent: null });
+    });
+  });
+
+  describe("listTrending", () => {
+    const HOUR = 60 * 60 * 1000;
+    const NOW = 100 * 24 * HOUR;
+
+    // The repository stamps swipes and the service measures the window with the same controlled clock.
+    function trendingSetup(memeIds = ["a", "b", "c"]) {
+      let time = NOW;
+      const clock = () => time;
+      const catalog = createMemeCatalog(memeIds.map((id) => ({ id, caption: id.toUpperCase(), file: `${id}.svg` })));
+      const service = createSwipeService(catalog, createInMemorySwipeRepository({ now: clock }), { now: clock });
+      let user = 0;
+      // Each swipe comes from a new user, at the given time.
+      const swipeAt = (at: number, memeId: string, direction: "like" | "nope", times = 1) => {
+        time = at;
+        for (let i = 0; i < times; i++) service.recordSwipe(`user${user++}`, memeId, direction);
+        time = NOW;
+      };
+      return { service, swipeAt };
+    }
+    const ids = (memes: { id: string }[]) => memes.map((meme) => meme.id);
+
+    it("is empty with the all-time window when nobody has swiped", () => {
+      expect(trendingSetup().service.listTrending()).toEqual({ window: "all-time", memes: [] });
+    });
+
+    it("ranks by likes in the last 24 hours when there is enough activity", () => {
+      const { service, swipeAt } = trendingSetup();
+      // Long ago "a" was the favourite; today "b" is.
+      swipeAt(NOW - 30 * 24 * HOUR, "a", "like", 20);
+      swipeAt(NOW - HOUR, "b", "like", 6);
+      swipeAt(NOW - HOUR, "a", "like", 4);
+
+      const trending = service.listTrending();
+
+      expect(trending.window).toBe("last-24-hours");
+      expect(ids(trending.memes)).toEqual(["b", "a"]);
+      expect(trending.memes.map((meme) => meme.windowLikes)).toEqual([6, 4]);
+    });
+
+    it("keeps all-time stats on the memes while ranking by the window", () => {
+      const { service, swipeAt } = trendingSetup();
+      swipeAt(NOW - 30 * 24 * HOUR, "a", "nope", 10);
+      swipeAt(NOW - HOUR, "a", "like", MIN_SWIPES_FOR_TRENDING_WINDOW);
+
+      const [meme] = service.listTrending().memes;
+
+      expect(meme.windowLikes).toBe(MIN_SWIPES_FOR_TRENDING_WINDOW);
+      expect(meme.stats).toEqual({ likes: 10, swipes: 20, likePercent: 50 });
+    });
+
+    it("counts a swipe exactly 24 hours old as inside the window", () => {
+      const { service, swipeAt } = trendingSetup();
+      swipeAt(NOW - TRENDING_WINDOW_HOURS * HOUR, "a", "like", MIN_SWIPES_FOR_TRENDING_WINDOW);
+
+      expect(service.listTrending().window).toBe("last-24-hours");
+    });
+
+    it("falls back to all time when the last 24 hours have too few swipes", () => {
+      const { service, swipeAt } = trendingSetup();
+      swipeAt(NOW - 30 * 24 * HOUR, "a", "like", 20);
+      swipeAt(NOW - HOUR, "b", "like", MIN_SWIPES_FOR_TRENDING_WINDOW - 1);
+
+      const trending = service.listTrending();
+
+      expect(trending.window).toBe("all-time");
+      expect(ids(trending.memes)).toEqual(["a", "b"]);
+      expect(trending.memes.map((meme) => meme.windowLikes)).toEqual([20, MIN_SWIPES_FOR_TRENDING_WINDOW - 1]);
+    });
+
+    it("breaks ties on likes by the share of likes, then by catalog order", () => {
+      const { service, swipeAt } = trendingSetup(["a", "b", "c", "d"]);
+      swipeAt(NOW, "d", "like", 3);
+      swipeAt(NOW, "c", "like", 3);
+      swipeAt(NOW, "a", "like", 3);
+      swipeAt(NOW, "a", "nope", 3);
+
+      expect(ids(service.listTrending().memes)).toEqual(["c", "d", "a"]);
+    });
+
+    it("leaves out memes without likes in the window", () => {
+      const { service, swipeAt } = trendingSetup();
+      swipeAt(NOW, "a", "nope", 5);
+      swipeAt(NOW, "b", "like");
+
+      expect(ids(service.listTrending().memes)).toEqual(["b"]);
+    });
+
+    it(`lists at most ${TRENDING_LIMIT} memes`, () => {
+      const memeIds = Array.from({ length: TRENDING_LIMIT + 2 }, (_, i) => `m${i}`);
+      const { service, swipeAt } = trendingSetup(memeIds);
+      memeIds.forEach((id, i) => swipeAt(NOW, id, "like", i + 1));
+
+      const trending = service.listTrending();
+
+      expect(trending.memes).toHaveLength(TRENDING_LIMIT);
+      expect(trending.memes[0].id).toBe(memeIds[memeIds.length - 1]);
+    });
+
+    it("stops counting a user's likes after that user resets", () => {
+      const { service } = trendingSetup();
+      service.recordSwipe("fan", "a", "like");
+
+      service.resetSwipes("fan");
+
+      expect(service.listTrending().memes).toEqual([]);
     });
   });
 });

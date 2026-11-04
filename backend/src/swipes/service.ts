@@ -1,5 +1,5 @@
 import type { Meme, MemeCatalog } from "../memes/catalog.js";
-import type { Direction, Swipe, SwipeRepository } from "./repository.js";
+import type { Direction, Swipe, SwipeCounts, SwipeRepository } from "./repository.js";
 
 export class UnknownMemeError extends Error {
   constructor(memeId: string) {
@@ -22,6 +22,32 @@ export interface RatedMeme extends Meme {
   stats: MemeStats;
 }
 
+/** Trending ranks memes by likes in the last TRENDING_WINDOW_HOURS hours... */
+export const TRENDING_WINDOW_HOURS = 24;
+/** ...unless that window has fewer swipes than this; then it ranks by likes of all time. */
+export const MIN_SWIPES_FOR_TRENDING_WINDOW = 10;
+/** How many memes trending lists at most. */
+export const TRENDING_LIMIT = 10;
+
+/** The time trending is counted over: the last TRENDING_WINDOW_HOURS hours, or all time as the fallback. */
+export type TrendingWindow = "last-24-hours" | "all-time";
+
+export interface TrendingMeme extends RatedMeme {
+  /** Likes inside the trending window, which is what the ranking uses. `stats` stays all time. */
+  windowLikes: number;
+}
+
+export interface Trending {
+  window: TrendingWindow;
+  /** Most liked first, at most TRENDING_LIMIT, only memes with at least one like in the window. */
+  memes: TrendingMeme[];
+}
+
+export interface SwipeServiceOptions {
+  /** Clock in milliseconds since the epoch, for the trending window. Defaults to Date.now. */
+  now?: () => number;
+}
+
 export interface SwipeService {
   /** The next meme the user has not swiped yet, or null when all memes have been swiped. */
   getNextMeme(userId: string): RatedMeme | null;
@@ -34,9 +60,27 @@ export interface SwipeService {
   listLikedMemes(userId: string): RatedMeme[];
   /** Removes all of the user's swipes, including likes. Safe to call repeatedly. */
   resetSwipes(userId: string): void;
+  /**
+   * The memes people are loving right now: ranked by likes in the last TRENDING_WINDOW_HOURS hours,
+   * then by the share of likes in that window, then in catalog order. Falls back to all time when
+   * the window has fewer than MIN_SWIPES_FOR_TRENDING_WINDOW swipes.
+   */
+  listTrending(): Trending;
 }
 
-export function createSwipeService(catalog: MemeCatalog, repository: SwipeRepository): SwipeService {
+function totalSwipes(countsByMeme: Map<string, SwipeCounts>): number {
+  let total = 0;
+  for (const counts of countsByMeme.values()) total += counts.swipes;
+  return total;
+}
+
+export function createSwipeService(
+  catalog: MemeCatalog,
+  repository: SwipeRepository,
+  options: SwipeServiceOptions = {},
+): SwipeService {
+  const now = options.now ?? Date.now;
+
   function rate(meme: Meme): RatedMeme {
     const { likes, swipes } = repository.countByMeme(meme.id);
     const likePercent = swipes >= MIN_SWIPES_FOR_PERCENT ? Math.round((likes / swipes) * 100) : null;
@@ -74,6 +118,34 @@ export function createSwipeService(catalog: MemeCatalog, repository: SwipeReposi
 
     resetSwipes(userId) {
       repository.clearByUser(userId);
+    },
+
+    listTrending() {
+      const windowStart = now() - TRENDING_WINDOW_HOURS * 60 * 60 * 1000;
+      let window: TrendingWindow = "last-24-hours";
+      let countsByMeme = repository.countAllByMemeSince(windowStart);
+      if (totalSwipes(countsByMeme) < MIN_SWIPES_FOR_TRENDING_WINDOW) {
+        window = "all-time";
+        countsByMeme = repository.countAllByMemeSince(0);
+      }
+
+      const share = ({ likes, swipes }: SwipeCounts) => (swipes === 0 ? 0 : likes / swipes);
+      const ranked = catalog
+        .list()
+        .map((meme, catalogIndex) => ({ meme, catalogIndex, counts: countsByMeme.get(meme.id) }))
+        .filter((entry): entry is typeof entry & { counts: SwipeCounts } => (entry.counts?.likes ?? 0) > 0)
+        .sort(
+          (a, b) =>
+            b.counts.likes - a.counts.likes ||
+            share(b.counts) - share(a.counts) ||
+            a.catalogIndex - b.catalogIndex,
+        )
+        .slice(0, TRENDING_LIMIT);
+
+      return {
+        window,
+        memes: ranked.map(({ meme, counts }) => ({ ...rate(meme), windowLikes: counts.likes })),
+      };
     },
   };
 }

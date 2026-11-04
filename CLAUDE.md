@@ -16,16 +16,16 @@ Update [CHANGELOG.md](CHANGELOG.md) with every change, under `## Unreleased` in 
 
 An npm workspaces monorepo with TypeScript in both workspaces.
 
-- `backend/`: Express 5 API (port 3000). Storage is in memory.
+- `backend/`: Express 5 API (port 3000). Swipes are stored in SQLite (`node:sqlite`, built into Node 22.13+).
 - `frontend/`: React 19 + Vite (port 5173). The dev server proxies `/api` to the backend. In production the backend serves the built frontend (`STATIC_DIR`), so there is one process on one port.
 
 Backend layers (keep them separate):
 
 - `backend/src/app.ts`: the thin HTTP layer. `createApp(swipeService, options)` validates input, reads the user id from the `X-User-Id` header and maps results and errors to status codes. No business logic.
 - `backend/src/swipes/service.ts`: the swipe service, which holds the business logic. It depends only on the meme catalog and a `SwipeRepository`, and is tested without HTTP.
-- `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation. This is where a database plugs in: implement the interface and pass it to `createSwipeService` in `backend/src/index.ts`. Do not change the service for this.
+- `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation (used by tests). `sqlite-repository.ts` is the durable implementation the app uses; it also stores a `swiped_at` time per swipe for time-based stats. Storage changes go behind the interface and are wired in `backend/src/index.ts`; do not change the service for this. Every implementation must pass the shared contract tests in `backend/test/repository.test.ts`.
 - `backend/src/memes/`: the meme catalog and seed data (`seed.ts`). Images are SVGs in `backend/assets/memes`; adding a meme means adding both the SVG and a seed entry.
-- `backend/src/index.ts`: wires catalog, repository, service and app together. Reads `PORT` (default 3000) and `STATIC_DIR` from the environment.
+- `backend/src/index.ts`: wires catalog, repository, service and app together. Reads `PORT` (default 3000), `STATIC_DIR` and `DATABASE_PATH` (default `backend/data/meme-tinder.db`) from the environment, and closes the database on SIGINT/SIGTERM.
 
 Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping (buttons, arrow keys, pointer drag, no gesture library), `api.ts` is the only code that calls `fetch`, and `identity.ts` keeps the anonymous user id in localStorage.
 

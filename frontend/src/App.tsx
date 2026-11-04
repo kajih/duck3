@@ -25,8 +25,9 @@ import { MemeCard } from "./MemeCard";
 import { ProfilePanel } from "./ProfilePanel";
 import { SwipesPerMinute } from "./SwipesPerMinute";
 import { TrendingView } from "./TrendingView";
+import { PostMeme } from "./PostMeme";
 
-type View = "swipe" | "likes" | "trending";
+type View = "swipe" | "likes" | "trending" | "post";
 
 interface AppProps {
   /** The result of joining a profile from a device link, when the page was opened with one. */
@@ -181,7 +182,18 @@ export function App({ linkNotice = null }: AppProps) {
         <button type="button" aria-current={view === "trending" ? "page" : undefined} onClick={showTrending}>
           Trending
         </button>
+        <button
+          type="button"
+          aria-current={view === "post" ? "page" : undefined}
+          onClick={() => {
+            setError(null);
+            setView("post");
+          }}
+        >
+          Post
+        </button>
       </nav>
+      {view === "post" && <PostMeme />}
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
       {view === "trending" && !error && (trending ? <TrendingView trending={trending} /> : <p>Loading…</p>)}

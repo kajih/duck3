@@ -1,5 +1,10 @@
 # Running Meme-Tinder
 
+Uploaded SVGs and captions use the existing SQLite database and `meme-data` Docker volume,
+alongside swipes. The catalog's 30 seed IDs stay stable; restarting or rebuilding the backend
+does not replace seed records or lose uploads. Back up the whole database, including its WAL
+when copying a live database, or stop the app before copying the database file.
+
 The app runs either in Docker (one command, no Node needed) or locally with Node.
 
 ## Docker

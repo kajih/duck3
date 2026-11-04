@@ -51,6 +51,25 @@ describe("App", () => {
     expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
   });
 
+  it("opens the post form without swiping on arrow keys, then returns to the refreshed swipe pile", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ meme: first }))
+      .mockResolvedValueOnce(ok({ meme: second }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+    await screen.findByRole("img", { name: first.caption });
+    fireEvent.click(screen.getByRole("button", { name: "Post" }));
+    expect(screen.getByRole("heading", { name: "Post a meme" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Post" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("button", { name: "Like" })).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Swipe" }));
+    expect(await screen.findByRole("img", { name: second.caption })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Post a meme" })).not.toBeInTheDocument();
+  });
+
   it("shows the meme returned by the backend", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
 

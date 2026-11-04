@@ -17,6 +17,7 @@ jobs:
   test-and-build:
     name: Test and build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -24,6 +25,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The quick style checks first, so they fail fast and are never hidden by a failing test.
+      - run: npm run lint
+      - run: npm run format:check
       - run: npm test
-      # The build is also the type check (there is no linter).
+      # The build also checks TypeScript types.
       - run: npm run build

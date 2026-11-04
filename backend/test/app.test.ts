@@ -337,7 +337,11 @@ describe("/api/profile", () => {
     const res = await getProfile(setup(), "secret-user-id");
 
     expect(res.status).toBe(200);
-    expect(res.body.profile).toEqual({ id: expect.any(String), nickname: expect.any(String), emoji: expect.any(String) });
+    expect(res.body.profile).toEqual({
+      id: expect.any(String),
+      nickname: expect.any(String),
+      emoji: expect.any(String),
+    });
     expect(res.body.emojiChoices).toContain(res.body.profile.emoji);
     expect(res.body.nicknameMaxLength).toBe(24);
   });
@@ -356,9 +360,11 @@ describe("/api/profile", () => {
 
     await getProfile(app, "u1");
 
-    expect((await request(app).get("/api/likes").set("X-User-Id", "u1")).body.memes.map((m: { id: string }) => m.id)).toEqual([
-      meme.id,
-    ]);
+    expect(
+      (await request(app).get("/api/likes").set("X-User-Id", "u1")).body.memes.map(
+        (m: { id: string }) => m.id,
+      ),
+    ).toEqual([meme.id]);
   });
 
   it("updates nickname and emoji and keeps them", async () => {

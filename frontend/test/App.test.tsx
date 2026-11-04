@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Api from "../src/api";
 import { fetchProfile, updateProfile } from "../src/api";
 import { App } from "../src/App";
 
 // The profile loads separately from the memes. Mocking it keeps the fetch order in these tests about memes.
 vi.mock("../src/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../src/api")>()),
+  ...(await importOriginal<typeof Api>()),
   fetchProfile: vi.fn(),
   updateProfile: vi.fn(),
 }));
@@ -17,7 +18,12 @@ const profileSettings = {
 };
 
 const newMeme = { likes: 0, swipes: 0, likePercent: null };
-const first = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg", stats: newMeme };
+const first = {
+  id: "m1",
+  caption: "It works on my machine",
+  imageUrl: "/api/memes/images/m1.svg",
+  stats: newMeme,
+};
 const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/images/m2.svg", stats: newMeme };
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
@@ -185,7 +191,10 @@ describe("App", () => {
   it("shows an error message when the reset fails", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValueOnce(ok({ meme: null })).mockResolvedValueOnce({ ok: false, status: 500 }),
+      vi
+        .fn()
+        .mockResolvedValueOnce(ok({ meme: null }))
+        .mockResolvedValueOnce({ ok: false, status: 500 }),
     );
     render(<App />);
 
@@ -213,7 +222,10 @@ describe("App", () => {
   it("shows an error message when recording a swipe fails", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce({ ok: false, status: 500 }),
+      vi
+        .fn()
+        .mockResolvedValueOnce(ok({ meme: first }))
+        .mockResolvedValueOnce({ ok: false, status: 500 }),
     );
     render(<App />);
     await screen.findByRole("img", { name: first.caption });
@@ -226,7 +238,10 @@ describe("App", () => {
   it("brings the card back without a stamp when recording a swipe fails", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce({ ok: false, status: 500 }),
+      vi
+        .fn()
+        .mockResolvedValueOnce(ok({ meme: first }))
+        .mockResolvedValueOnce({ ok: false, status: 500 }),
     );
     render(<App />);
     await screen.findByRole("img", { name: first.caption });
@@ -260,7 +275,13 @@ describe("App", () => {
     });
 
     it("shows an empty message when nothing is liked", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce(ok({ memes: [] })));
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValueOnce(ok({ meme: first }))
+          .mockResolvedValueOnce(ok({ memes: [] })),
+      );
       render(<App />);
       await screen.findByRole("img", { name: first.caption });
 
@@ -293,7 +314,10 @@ describe("App", () => {
     it("shows an error message when loading likes fails", async () => {
       vi.stubGlobal(
         "fetch",
-        vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce({ ok: false, status: 500 }),
+        vi
+          .fn()
+          .mockResolvedValueOnce(ok({ meme: first }))
+          .mockResolvedValueOnce({ ok: false, status: 500 }),
       );
       render(<App />);
       await screen.findByRole("img", { name: first.caption });
@@ -311,7 +335,10 @@ describe("App", () => {
         window: "last-24-hours",
         memes: [{ ...second, windowLikes: 7, stats: { likes: 9, swipes: 10, likePercent: 90 } }],
       };
-      const fetchMock = vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce(ok(trending));
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(ok({ meme: first }))
+        .mockResolvedValueOnce(ok(trending));
       vi.stubGlobal("fetch", fetchMock);
       render(<App />);
       await screen.findByRole("img", { name: first.caption });
@@ -330,7 +357,10 @@ describe("App", () => {
     it("shows an error message when loading trending fails", async () => {
       vi.stubGlobal(
         "fetch",
-        vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce({ ok: false, status: 500 }),
+        vi
+          .fn()
+          .mockResolvedValueOnce(ok({ meme: first }))
+          .mockResolvedValueOnce({ ok: false, status: 500 }),
       );
       render(<App />);
       await screen.findByRole("img", { name: first.caption });

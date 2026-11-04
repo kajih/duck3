@@ -7,7 +7,9 @@ afterEach(() => vi.useRealTimers());
 
 describe("CelebrationBurst", () => {
   it("announces a streak politely, with confetti hidden from screen readers", () => {
-    const { container } = render(<CelebrationBurst celebration={{ kind: "streak", likes: 5 }} onDone={vi.fn()} />);
+    const { container } = render(
+      <CelebrationBurst celebration={{ kind: "streak", likes: 5 }} onDone={vi.fn()} />,
+    );
 
     expect(screen.getByRole("status")).toHaveTextContent("5 likes in a row!");
     expect(container.querySelector(".confetti")).toHaveAttribute("aria-hidden", "true");
@@ -15,7 +17,9 @@ describe("CelebrationBurst", () => {
   });
 
   it("shows a distinct message for the 100th swipe", () => {
-    const { container } = render(<CelebrationBurst celebration={{ kind: "milestone", swipes: 100 }} onDone={vi.fn()} />);
+    const { container } = render(
+      <CelebrationBurst celebration={{ kind: "milestone", swipes: 100 }} onDone={vi.fn()} />,
+    );
 
     expect(screen.getByRole("status")).toHaveTextContent("100 swipes!");
     expect(container.firstChild).toHaveClass("celebration-milestone");
@@ -23,7 +27,9 @@ describe("CelebrationBurst", () => {
 
   it("is done after CELEBRATION_MS and has no focusable content", () => {
     const onDone = vi.fn();
-    const { container } = render(<CelebrationBurst celebration={{ kind: "streak", likes: 5 }} onDone={onDone} />);
+    const { container } = render(
+      <CelebrationBurst celebration={{ kind: "streak", likes: 5 }} onDone={onDone} />,
+    );
 
     expect(container.querySelector("button, a, input, [tabindex]")).toBeNull();
     act(() => vi.advanceTimersByTime(CELEBRATION_MS - 1));

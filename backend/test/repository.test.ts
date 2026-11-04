@@ -7,9 +7,29 @@ import {
   type SwipeRepository,
   type SwipeRepositoryOptions,
 } from "../src/swipes/repository.js";
-import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
+import { createSqliteSwipeRepository, type SqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 
 const tempDirs: string[] = [];
+const openRepositories: { close: () => void }[] = [];
+
+/**
+ * A SQLite repository that afterEach closes even when a test fails, so Windows can remove the
+ * temporary database files. Closing it in the test as well is fine.
+ */
+function trackedSqliteRepository(filename: string, options?: SwipeRepositoryOptions): SqliteSwipeRepository {
+  const repository = createSqliteSwipeRepository(filename, options);
+  let open = true;
+  const tracked: SqliteSwipeRepository = {
+    ...repository,
+    close: () => {
+      if (!open) return;
+      open = false;
+      repository.close();
+    },
+  };
+  openRepositories.push(tracked);
+  return tracked;
+}
 
 function tempDatabasePath(): string {
   const dir = mkdtempSync(path.join(tmpdir(), "meme-tinder-"));
@@ -18,14 +38,15 @@ function tempDatabasePath(): string {
 }
 
 afterEach(() => {
+  for (const repository of openRepositories.splice(0)) repository.close();
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 // Every SwipeRepository implementation must pass the same contract.
 describe.each<[string, (options?: SwipeRepositoryOptions) => SwipeRepository]>([
   ["in-memory", (options) => createInMemorySwipeRepository(options)],
-  ["SQLite in memory", (options) => createSqliteSwipeRepository(":memory:", options)],
-  ["SQLite file", (options) => createSqliteSwipeRepository(tempDatabasePath(), options)],
+  ["SQLite in memory", (options) => trackedSqliteRepository(":memory:", options)],
+  ["SQLite file", (options) => trackedSqliteRepository(tempDatabasePath(), options)],
 ])("%s swipe repository", (_name, createRepository) => {
   it("lists nothing for a user without swipes", () => {
     expect(createRepository().listByUser("u1")).toEqual([]);
@@ -148,12 +169,12 @@ describe.each<[string, (options?: SwipeRepositoryOptions) => SwipeRepository]>([
 describe("SQLite swipe repository file", () => {
   it("keeps swipes after the database is closed and opened again", () => {
     const file = tempDatabasePath();
-    const first = createSqliteSwipeRepository(file);
+    const first = trackedSqliteRepository(file);
     first.add("u1", { memeId: "a", direction: "like" });
     first.add("u1", { memeId: "b", direction: "nope" });
     first.close();
 
-    const reopened = createSqliteSwipeRepository(file);
+    const reopened = trackedSqliteRepository(file);
 
     expect(reopened.listByUser("u1")).toEqual([
       { memeId: "a", direction: "like" },
@@ -164,12 +185,12 @@ describe("SQLite swipe repository file", () => {
 
   it("keeps a reset after the database is opened again", () => {
     const file = tempDatabasePath();
-    const first = createSqliteSwipeRepository(file);
+    const first = trackedSqliteRepository(file);
     first.add("u1", { memeId: "a", direction: "like" });
     first.clearByUser("u1");
     first.close();
 
-    const reopened = createSqliteSwipeRepository(file);
+    const reopened = trackedSqliteRepository(file);
 
     expect(reopened.listByUser("u1")).toEqual([]);
     reopened.close();

@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { Profile, ProfileRepository } from "./repository.js";
+import type { ProfileRepository } from "./repository.js";
 
 export interface SqliteProfileRepository extends ProfileRepository {
   /** Closes the database file. The repository cannot be used afterwards. */

@@ -9,7 +9,8 @@ import { createSwipeService } from "./swipes/service.js";
 const port = Number(process.env.PORT ?? 3000);
 
 // Swipes are stored in a SQLite file so they survive restarts. Defaults to backend/data/meme-tinder.db.
-const databasePath = process.env.DATABASE_PATH ?? fileURLToPath(new URL("../data/meme-tinder.db", import.meta.url));
+const databasePath =
+  process.env.DATABASE_PATH ?? fileURLToPath(new URL("../data/meme-tinder.db", import.meta.url));
 const repository = createSqliteSwipeRepository(databasePath);
 
 const swipeService = createSwipeService(createMemeCatalog(), repository);
@@ -22,7 +23,9 @@ const profileService = createProfileService(profileRepository);
 const staticDir = process.env.STATIC_DIR;
 
 const server = createApp(swipeService, profileService, { staticDir }).listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port} (swipes and profiles stored in ${databasePath})`);
+  console.log(
+    `Backend listening on http://localhost:${port} (swipes and profiles stored in ${databasePath})`,
+  );
 });
 
 // Close the database cleanly on `docker stop`, Ctrl+C and watch-mode restarts.

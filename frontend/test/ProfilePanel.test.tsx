@@ -33,7 +33,10 @@ describe("ProfilePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).toHaveBeenCalledWith("Frog Fan", "🐸");
-    expect(await screen.findByRole("button", { name: /Giggling Otter/ })).toHaveAttribute("aria-expanded", "false");
+    expect(await screen.findByRole("button", { name: /Giggling Otter/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it("explains an empty nickname without saving", () => {

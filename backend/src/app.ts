@@ -32,7 +32,11 @@ export interface AppOptions {
   staticDir?: string;
 }
 
-export function createApp(swipeService: SwipeService, profileService: ProfileService, options: AppOptions = {}) {
+export function createApp(
+  swipeService: SwipeService,
+  profileService: ProfileService,
+  options: AppOptions = {},
+) {
   const app = express();
   app.use(express.json());
 

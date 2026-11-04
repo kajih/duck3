@@ -6,6 +6,7 @@
 
 ### Added
 
+- Shared ESLint checks for TypeScript conventions and React hooks, Prettier formatting commands, and required CI style checks; `AGENTS.md` directs Codex to the shared instructions in `CLAUDE.md`; files that come from upstream (`vision/`, `.claude/`) are not formatted or checked, and CI runs the quick style checks before tests and build (#4).
 - Profiles: every user has a nickname and an emoji, shown in the header and changed from a small profile panel (nickname up to 24 characters, emoji from a fixed list, with validation messages); created with a generated nickname like "Giggling Otter" on first use, so existing users keep all their swipes and likes. `GET /api/profile` and `PUT /api/profile`; profiles are stored in SQLite next to the swipes, behind a `ProfileRepository` with shared contract tests; each profile has a public id separate from the secret user id (kajih/duck3#24)
 - Celebrations: plenty of confetti (150 pieces, CSS only, no dependency) after 5 likes in a row (`STREAK_LENGTH`; a nope resets the streak, and it starts over after each celebration), and a bigger moment on the 100th swipe (`MILESTONE_SWIPES`), shown once and instead of a streak on the same swipe. Counted from the swipes in this session (page load or reset), not from history. The overlay ignores pointer events, never takes focus and goes away after 3 s; with `prefers-reduced-motion` the confetti is hidden and only the message shows (kajih/duck3#7)
 - Meme fingerprints for duplicate detection (`backend/src/memes/fingerprint.ts`), the groundwork for blocking duplicate posts: an image and caption count as the same meme when the SVG matches after ignoring formatting whitespace between elements, whitespace inside tags, attribute order and quote style (text spacing and visual properties still count) and the caption matches after trimming, collapsing whitespace and ignoring capitalization; meant to be stored with a unique index so concurrent duplicate posts cannot both be saved. Not wired to an endpoint yet, that waits for uploads in #8 (part of kajih/duck3#9)
@@ -54,6 +55,8 @@
 - `.nvmrc` and `engines` requiring Node 22+ and npm 10+; README with requirements and quick start (#2)
 
 ### Changed
+
+- Closed SQLite repositories before removing temporary test directories so the contract suite also runs on Windows (#4).
 
 - After a drag swipe the card leaves from where it was released instead of first jumping back to the middle; with `prefers-reduced-motion` it fades out there, starting at the swipe and ending as the next card appears. `MemeCard` passes the drag position to CSS as `--drag-x` and `--drag-rotate` instead of an inline `transform` (kajih/duck3#6)
 

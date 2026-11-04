@@ -3,14 +3,46 @@ import type { Profile, ProfileRepository } from "./repository.js";
 
 /** The pictures a profile can have. A fixed list keeps them friendly and easy to validate. */
 export const PROFILE_EMOJIS = [
-  "🦦", "🐸", "🦊", "🐼", "🐙", "🦄", "🐝", "🦉",
-  "🐧", "🐢", "🦖", "🐳", "🦔", "🐨", "🦁", "🐯",
-  "🐵", "🐶", "🐱", "🦩", "🍕", "🌮", "🚀", "👾",
+  "🦦",
+  "🐸",
+  "🦊",
+  "🐼",
+  "🐙",
+  "🦄",
+  "🐝",
+  "🦉",
+  "🐧",
+  "🐢",
+  "🦖",
+  "🐳",
+  "🦔",
+  "🐨",
+  "🦁",
+  "🐯",
+  "🐵",
+  "🐶",
+  "🐱",
+  "🦩",
+  "🍕",
+  "🌮",
+  "🚀",
+  "👾",
 ] as const;
 
 export const NICKNAME_MAX_LENGTH = 24;
 
-const ADJECTIVES = ["Giggling", "Sneaky", "Cosmic", "Sleepy", "Spicy", "Fluffy", "Wobbly", "Dramatic", "Turbo", "Chill"];
+const ADJECTIVES = [
+  "Giggling",
+  "Sneaky",
+  "Cosmic",
+  "Sleepy",
+  "Spicy",
+  "Fluffy",
+  "Wobbly",
+  "Dramatic",
+  "Turbo",
+  "Chill",
+];
 const NOUNS = ["Otter", "Frog", "Fox", "Panda", "Octopus", "Unicorn", "Bee", "Owl", "Penguin", "Turtle"];
 
 export class InvalidProfileError extends Error {}
@@ -55,7 +87,10 @@ function validEmoji(value: unknown): string {
   return emoji;
 }
 
-export function createProfileService(repository: ProfileRepository, options: ProfileServiceOptions = {}): ProfileService {
+export function createProfileService(
+  repository: ProfileRepository,
+  options: ProfileServiceOptions = {},
+): ProfileService {
   const random = options.randomInt ?? ((max: number) => randomInt(max));
   const createId = options.createId ?? randomUUID;
   const pick = <T>(list: readonly T[]): T => list[random(list.length)];

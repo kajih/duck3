@@ -256,4 +256,40 @@ describe("App", () => {
       expect(screen.queryByText("You have not liked any memes yet.")).not.toBeInTheDocument();
     });
   });
+
+  describe("trending view", () => {
+    it("shows the trending memes from the backend when the Trending tab is used", async () => {
+      const trending = {
+        window: "last-24-hours",
+        memes: [{ ...second, windowLikes: 7, stats: { likes: 9, swipes: 10, likePercent: 90 } }],
+      };
+      const fetchMock = vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce(ok(trending));
+      vi.stubGlobal("fetch", fetchMock);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+
+      fireEvent.click(screen.getByRole("button", { name: "Trending" }));
+
+      expect(await screen.findByRole("heading", { name: "Trending" })).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: second.caption })).toBeInTheDocument();
+      expect(screen.getByText("7 likes today")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Trending" })).toHaveAttribute("aria-current", "page");
+      expect(screen.queryByRole("button", { name: "Like" })).not.toBeInTheDocument();
+      expect(fetchMock.mock.calls[1][0]).toBe("/api/trending");
+      expect(fetchMock.mock.calls[1][1].headers["X-User-Id"]).toEqual(expect.any(String));
+    });
+
+    it("shows an error message when loading trending fails", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce({ ok: false, status: 500 }),
+      );
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+
+      fireEvent.click(screen.getByRole("button", { name: "Trending" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong");
+    });
+  });
 });

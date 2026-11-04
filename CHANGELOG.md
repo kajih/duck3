@@ -6,6 +6,8 @@
 
 ### Added
 
+- CI with GitHub Actions: `npm ci`, `npm test` and `npm run build` on every pull request and push to `main`, with Node from `.nvmrc` and the npm cache; a CI badge and a Guardrails section in the README on requiring a green check and setting it up in branch protection (kajih/duck3#3)
+- Trending tab next to Likes with the top 10 memes people are loving right now: ranked by likes in the last 24 hours (falling back to all time when there were fewer than 10 swipes that day, and saying so on the page), with likes in the window, the like percentage, and gold, silver and bronze ranks; `GET /api/trending` and `SwipeRepository.countAllByMemeSince`, with a `swiped_at` index in SQLite and swipe times in the in-memory repository too (kajih/duck3#12)
 - The card that follows a swipe springs in from behind (grows from 85% with a small overshoot and fades in, 350 ms, `CARD_ENTER_MS`), and swipes are ignored until it has arrived; the first card and the card after a reset just appear. With `prefers-reduced-motion` the next card appears without animation and can be swiped right away. CSS only (kajih/duck3#6)
 - Arrow keys are listened for from the moment a card is shown (layout effect), so a key pressed right after a card appears is not lost, and frontend tests wait up to 3 s for async UI because swipes now take 750 ms (kajih/duck3#6)
 - Tests for the entrance (swipes blocked until it is done), reduced motion, and the swiped card leaving toward its direction from where it was released (kajih/duck3#6)

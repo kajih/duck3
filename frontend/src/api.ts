@@ -17,6 +17,20 @@ export interface Meme {
 
 export type Direction = "like" | "nope";
 
+/** The time trending counts likes over: the last 24 hours, or all time when the last day was quiet. */
+export type TrendingWindow = "last-24-hours" | "all-time";
+
+export interface TrendingMeme extends Meme {
+  /** Likes inside the trending window, which is what the ranking uses. */
+  windowLikes: number;
+}
+
+export interface Trending {
+  window: TrendingWindow;
+  /** Most liked first. */
+  memes: TrendingMeme[];
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -44,6 +58,11 @@ export async function sendSwipe(memeId: string, direction: Direction): Promise<v
 export async function fetchLikes(): Promise<Meme[]> {
   const { memes } = await request<{ memes: Meme[] }>("/api/likes");
   return memes;
+}
+
+/** The memes people are loving right now, across all users. */
+export async function fetchTrending(): Promise<Trending> {
+  return request<Trending>("/api/trending");
 }
 
 /** Removes all of the user's swipes, including likes. */

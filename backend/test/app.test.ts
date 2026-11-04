@@ -284,3 +284,40 @@ describe("GET /api/likes", () => {
     expect(res.body).toEqual({ error: expect.any(String) });
   });
 });
+
+describe("GET /api/trending", () => {
+  const trending = (app: ReturnType<typeof setup>, userId: string) =>
+    request(app).get("/api/trending").set("X-User-Id", userId);
+
+  it("returns an empty all-time list when nobody has swiped", async () => {
+    const res = await trending(setup(), "u1");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ window: "all-time", memes: [] });
+  });
+
+  it("returns the most liked memes across all users with their likes and stats", async () => {
+    const app = setup();
+    const { meme: first } = (await next(app, "u1")).body;
+    await swipe(app, "u1", { memeId: first.id, direction: "like" });
+    await swipe(app, "u2", { memeId: first.id, direction: "like" });
+    const { meme: second } = (await next(app, "u1")).body;
+    await swipe(app, "u3", { memeId: second.id, direction: "like" });
+
+    const res = await trending(app, "someone-else");
+
+    expect(res.status).toBe(200);
+    expect(res.body.window).toBe("all-time");
+    expect(res.body.memes).toEqual([
+      { ...first, windowLikes: 2, stats: { likes: 2, swipes: 2, likePercent: null } },
+      { ...second, windowLikes: 1, stats: { likes: 1, swipes: 1, likePercent: null } },
+    ]);
+  });
+
+  it("rejects a missing user id", async () => {
+    const res = await request(setup()).get("/api/trending");
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: expect.any(String) });
+  });
+});

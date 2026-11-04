@@ -1,5 +1,7 @@
 # Meme-Tinder
 
+[![CI](https://github.com/kajih/duck3/actions/workflows/ci.yml/badge.svg)](https://github.com/kajih/duck3/actions/workflows/ci.yml)
+
 Tinder but for memes
 
 A proof of concept that workshop teams fork and extend. It is an npm workspaces monorepo:
@@ -31,6 +33,12 @@ Open http://localhost:5173, then swipe memes by dragging the card, with the Like
 | `npm test`      | Runs all backend and frontend tests           |
 | `npm run build` | Builds both workspaces                        |
 
+## Guardrails
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm ci`, `npm test` and `npm run build` on every pull request and on every push to `main`, with the Node version from `.nvmrc`. A failing test or a type error turns the check red. **Merge only with a green check.**
+
+To make GitHub enforce this, add a branch protection rule (or ruleset) for `main`: Settings → Branches → Add branch protection rule, branch name pattern `main`, tick "Require status checks to pass before merging" and pick the `Test and build` check (it shows up after the workflow has run once). In a fork, also enable Actions under the Actions tab and change the badge URL at the top of this README to your repository.
+
 ## API
 
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
@@ -41,8 +49,11 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 | `POST /api/swipes`      | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
 | `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
 | `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
+| `GET /api/trending`     | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
 
 Every meme in a response has `stats`: `{ "likes": 4, "swipes": 5, "likePercent": 80 }`, counted across all users. `likePercent` is rounded, and `null` until a meme has 5 swipes; the app then shows "New meme" instead of "80% of people loved this". A user's swipes stop counting when that user resets.
+
+Trending ranks memes by likes in the last 24 hours, then by the share of likes in that time, then in catalog order, and lists only memes with at least one like there. When the last 24 hours have fewer than 10 swipes in total, it falls back to all time, and `window` is `"all-time"`. `windowLikes` is the number of likes in the window; `stats` is all time, as everywhere else. The Trending tab shows which window it uses.
 
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
 

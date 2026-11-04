@@ -70,6 +70,13 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
     res.json({ memes: swipeService.listLikedMemes(userId) });
   });
 
+  // 200 with { window, memes }: the most liked memes in the trending window, most liked first.
+  app.get("/api/trending", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json(swipeService.listTrending());
+  });
+
   // 204 No Content. Removes all of the user's swipes, including likes. Safe to repeat.
   app.delete("/api/swipes", (req, res) => {
     const userId = requireUserId(req, res);

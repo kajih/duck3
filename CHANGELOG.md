@@ -6,6 +6,10 @@
 
 ### Added
 
+- The card that follows a swipe springs in from behind (grows from 85% with a small overshoot and fades in, 350 ms, `CARD_ENTER_MS`), and swipes are ignored until it has arrived; the first card and the card after a reset just appear. With `prefers-reduced-motion` the next card appears without animation and can be swiped right away. CSS only (kajih/duck3#6)
+- Arrow keys are listened for from the moment a card is shown (layout effect), so a key pressed right after a card appears is not lost, and frontend tests wait up to 3 s for async UI because swipes now take 750 ms (kajih/duck3#6)
+- Tests for the entrance (swipes blocked until it is done), reduced motion, and the swiped card leaving toward its direction from where it was released (kajih/duck3#6)
+
 - Every meme card and liked meme shows how much people love it, for example "87% of people loved this", or "New meme" below 5 swipes; memes from `GET /api/memes/next` and `GET /api/likes` include `stats` (`likes`, `swipes`, `likePercent`) counted across all users, and `SwipeRepository` has `countByMeme` (kajih/duck3#11)
 - LIKE and NOPE stamps on the swipe card, large and diagonal across the meme image (sized from the card width): while dragging, the matching stamp fades in with the drag distance, and after a drag, button or arrow-key swipe a physical rubber stamp (wooden block and knob, seen from above) comes down, presses the stamp onto the meme and lifts away before the card flies out. Stamps and the stamp tool are `aria-hidden`, and with `prefers-reduced-motion` there is no stamp tool, the stamp appears in place and the card fades instead of flying. CSS only, no animation library (kajih/duck3#5)
 - Testing Library tests for which stamp shows for each direction and swipe input, the stamp tool, and the card coming back after a failed swipe (kajih/duck3#5)
@@ -45,6 +49,8 @@
 - `.nvmrc` and `engines` requiring Node 22+ and npm 10+; README with requirements and quick start (#2)
 
 ### Changed
+
+- After a drag swipe the card leaves from where it was released instead of first jumping back to the middle; with `prefers-reduced-motion` it fades out there, starting at the swipe and ending as the next card appears. `MemeCard` passes the drag position to CSS as `--drag-x` and `--drag-rotate` instead of an inline `transform` (kajih/duck3#6)
 
 - The meme card no longer clips its content (`overflow: hidden`), so the stamp tool can come down from outside it; the image has its own rounded top corners (kajih/duck3#5)
 - `MemeCard` calls `onSwipe` once the card has left (`SWIPE_EXIT_MS`, 750 ms: 450 ms stamping, 300 ms flying out) so the stamp can be seen, and ignores further swipes in the meantime; `onSwipe` may return a promise, and if the card is still shown when it settles (a failed swipe) the card comes back (kajih/duck3#5)

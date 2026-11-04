@@ -12,6 +12,8 @@ export function App() {
   const [likes, setLikes] = useState<Meme[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
+  /** Whether the shown card follows a swipe, so it plays the entrance animation. */
+  const [enterNext, setEnterNext] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -42,6 +44,7 @@ export function App() {
 
   async function showSwipe() {
     setView("swipe");
+    setEnterNext(false);
     await load();
   }
 
@@ -51,6 +54,7 @@ export function App() {
     setSwiping(true);
     try {
       await sendSwipe(meme.id, direction);
+      setEnterNext(true);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -67,6 +71,7 @@ export function App() {
       setError(err instanceof Error ? err.message : "Unknown error");
       return;
     }
+    setEnterNext(false);
     await load();
   }
 
@@ -86,7 +91,7 @@ export function App() {
       {view === "swipe" && loading && !error && <p>Loading…</p>}
       {view === "swipe" && !loading && !error && !meme && <EmptyState onReset={reset} />}
       {view === "swipe" && meme && (
-        <MemeCard key={meme.id} meme={meme} onSwipe={swipe} disabled={swiping} />
+        <MemeCard key={meme.id} meme={meme} onSwipe={swipe} disabled={swiping} enter={enterNext} />
       )}
     </main>
   );

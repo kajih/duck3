@@ -21,6 +21,24 @@ export class ContentError extends Error {
   }
 }
 
+const TAG =
+  /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\/[^>]*>|<[A-Za-z][^\s/>]*(?:\s+[^\s=/>]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*\s*(\/?)>/g;
+
+/**
+ * The nesting depth from the markup itself, without parsing it into a DOM. Parsing deeply nested
+ * markup is slow (1,500 levels take about half a second), so this rejects it before parsing.
+ */
+function sourceDepth(svg: string): number {
+  let level = 0;
+  let deepest = 0;
+  for (const [tag, selfClosing] of svg.matchAll(TAG)) {
+    if (tag.startsWith("</")) level = Math.max(0, level - 1);
+    else if (tag.startsWith("<!")) continue;
+    else if (!selfClosing) deepest = Math.max(deepest, ++level);
+  }
+  return deepest;
+}
+
 /** How deeply elements are nested below (and including) the given one, without recursion. */
 function depth(root: Element): number {
   let deepest = 0;
@@ -39,6 +57,9 @@ export function validateSvg(svg: string): void {
   // A cheap upper bound on the element count, before the expensive parsing.
   if ((svg.match(/<[A-Za-z]/g)?.length ?? 0) > MAX_SVG_ELEMENTS) {
     throw new ContentError(`SVG can have at most ${MAX_SVG_ELEMENTS} elements`);
+  }
+  if (sourceDepth(svg) > MAX_SVG_DEPTH) {
+    throw new ContentError(`SVG elements can be nested at most ${MAX_SVG_DEPTH} levels deep`);
   }
   if (/<!DOCTYPE|<!ENTITY/i.test(svg))
     throw new ContentError("SVG document types and entities are not allowed");

@@ -59,6 +59,7 @@
 
 ### Changed
 
+- SVG uploads reject markup nested deeper than 32 levels before parsing it, so a deeply nested upload is rejected in milliseconds instead of about half a second (kajih/duck3#8)
 - Closed SQLite repositories before removing temporary test directories so the contract suite also runs on Windows (#4).
 
 - After a drag swipe the card leaves from where it was released instead of first jumping back to the middle; with `prefers-reduced-motion` it fades out there, starting at the swipe and ending as the next card appears. `MemeCard` passes the drag position to CSS as `--drag-x` and `--drag-rotate` instead of an inline `transform` (kajih/duck3#6)

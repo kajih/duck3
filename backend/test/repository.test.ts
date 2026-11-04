@@ -2,7 +2,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createInMemorySwipeRepository, type SwipeRepository } from "../src/swipes/repository.js";
+import {
+  createInMemorySwipeRepository,
+  type SwipeRepository,
+  type SwipeRepositoryOptions,
+} from "../src/swipes/repository.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 
 const tempDirs: string[] = [];
@@ -18,10 +22,10 @@ afterEach(() => {
 });
 
 // Every SwipeRepository implementation must pass the same contract.
-describe.each<[string, () => SwipeRepository]>([
-  ["in-memory", createInMemorySwipeRepository],
-  ["SQLite in memory", () => createSqliteSwipeRepository(":memory:")],
-  ["SQLite file", () => createSqliteSwipeRepository(tempDatabasePath())],
+describe.each<[string, (options?: SwipeRepositoryOptions) => SwipeRepository]>([
+  ["in-memory", (options) => createInMemorySwipeRepository(options)],
+  ["SQLite in memory", (options) => createSqliteSwipeRepository(":memory:", options)],
+  ["SQLite file", (options) => createSqliteSwipeRepository(tempDatabasePath(), options)],
 ])("%s swipe repository", (_name, createRepository) => {
   it("lists nothing for a user without swipes", () => {
     expect(createRepository().listByUser("u1")).toEqual([]);
@@ -80,6 +84,55 @@ describe.each<[string, () => SwipeRepository]>([
     repository.clearByUser("u1");
 
     expect(repository.countByMeme("a")).toEqual({ likes: 0, swipes: 1 });
+  });
+
+  describe("countAllByMemeSince", () => {
+    // A controlled clock: each swipe is stored at the current value of `time`.
+    function timedRepository() {
+      let time = 1_000;
+      const repository = createRepository({ now: () => time });
+      return { repository, setTime: (value: number) => (time = value) };
+    }
+
+    it("counts nothing when nobody has swiped", () => {
+      expect(createRepository().countAllByMemeSince(0)).toEqual(new Map());
+    });
+
+    it("counts likes and swipes per meme across all users", () => {
+      const { repository } = timedRepository();
+      repository.add("u1", { memeId: "a", direction: "like" });
+      repository.add("u2", { memeId: "a", direction: "nope" });
+      repository.add("u2", { memeId: "b", direction: "like" });
+
+      expect(repository.countAllByMemeSince(0)).toEqual(
+        new Map([
+          ["a", { likes: 1, swipes: 2 }],
+          ["b", { likes: 1, swipes: 1 }],
+        ]),
+      );
+    });
+
+    it("counts only swipes made at or after the given time", () => {
+      const { repository, setTime } = timedRepository();
+      setTime(1_000);
+      repository.add("u1", { memeId: "a", direction: "like" });
+      repository.add("u1", { memeId: "b", direction: "like" });
+      setTime(2_000);
+      repository.add("u2", { memeId: "a", direction: "nope" });
+
+      expect(repository.countAllByMemeSince(2_000)).toEqual(new Map([["a", { likes: 0, swipes: 1 }]]));
+      expect(repository.countAllByMemeSince(2_001)).toEqual(new Map());
+    });
+
+    it("stops counting a user's swipes after they are cleared", () => {
+      const { repository } = timedRepository();
+      repository.add("u1", { memeId: "a", direction: "like" });
+      repository.add("u2", { memeId: "a", direction: "like" });
+
+      repository.clearByUser("u1");
+
+      expect(repository.countAllByMemeSince(0)).toEqual(new Map([["a", { likes: 1, swipes: 1 }]]));
+    });
   });
 
   it("returns a copy that does not change the stored swipes", () => {

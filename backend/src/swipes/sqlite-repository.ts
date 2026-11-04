@@ -1,17 +1,21 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { DIRECTIONS, type Direction, type Swipe, type SwipeCounts, type SwipeRepository } from "./repository.js";
+import {
+  DIRECTIONS,
+  type Direction,
+  type Swipe,
+  type SwipeCounts,
+  type SwipeRepository,
+  type SwipeRepositoryOptions,
+} from "./repository.js";
 
 export interface SqliteSwipeRepository extends SwipeRepository {
   /** Closes the database file. The repository cannot be used afterwards. */
   close(): void;
 }
 
-export interface SqliteSwipeRepositoryOptions {
-  /** Clock for the stored swipe time, in milliseconds since the epoch. Defaults to Date.now. */
-  now?: () => number;
-}
+export type SqliteSwipeRepositoryOptions = SwipeRepositoryOptions;
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS swipes (
@@ -23,6 +27,7 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS swipes_by_user ON swipes (user_id);
   CREATE INDEX IF NOT EXISTS swipes_by_meme ON swipes (meme_id);
+  CREATE INDEX IF NOT EXISTS swipes_by_time ON swipes (swiped_at);
 `;
 
 function toDirection(value: unknown): Direction {
@@ -52,6 +57,9 @@ export function createSqliteSwipeRepository(
   const countByMeme = db.prepare(
     "SELECT COUNT(*) AS swipes, COALESCE(SUM(direction = 'like'), 0) AS likes FROM swipes WHERE meme_id = ?",
   );
+  const countAllByMemeSince = db.prepare(
+    "SELECT meme_id, COUNT(*) AS swipes, SUM(direction = 'like') AS likes FROM swipes WHERE swiped_at >= ? GROUP BY meme_id",
+  );
 
   return {
     listByUser: (userId) =>
@@ -68,6 +76,15 @@ export function createSqliteSwipeRepository(
       const row = countByMeme.get(memeId);
       return { likes: Number(row?.likes ?? 0), swipes: Number(row?.swipes ?? 0) };
     },
+    countAllByMemeSince: (since) =>
+      new Map(
+        countAllByMemeSince
+          .all(since)
+          .map((row): [string, SwipeCounts] => [
+            String(row.meme_id),
+            { likes: Number(row.likes), swipes: Number(row.swipes) },
+          ]),
+      ),
     close: () => db.close(),
   };
 }

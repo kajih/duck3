@@ -20,14 +20,31 @@ export interface SwipeRepository {
   clearByUser(userId: string): void;
   /** Counts the swipes on a meme across all users. */
   countByMeme(memeId: string): SwipeCounts;
+  /**
+   * Counts the swipes per meme across all users, only for swipes made at or after `since`
+   * (milliseconds since the epoch). Memes without swipes in that time are left out.
+   */
+  countAllByMemeSince(since: number): Map<string, SwipeCounts>;
 }
 
-export function createInMemorySwipeRepository(): SwipeRepository {
-  const swipesByUser = new Map<string, Swipe[]>();
+export interface SwipeRepositoryOptions {
+  /** Clock for the stored swipe time, in milliseconds since the epoch. Defaults to Date.now. */
+  now?: () => number;
+}
+
+interface StoredSwipe extends Swipe {
+  swipedAt: number;
+}
+
+export function createInMemorySwipeRepository(options: SwipeRepositoryOptions = {}): SwipeRepository {
+  const now = options.now ?? Date.now;
+  const swipesByUser = new Map<string, StoredSwipe[]>();
   return {
-    listByUser: (userId) => [...(swipesByUser.get(userId) ?? [])],
+    listByUser: (userId) =>
+      (swipesByUser.get(userId) ?? []).map(({ memeId, direction }): Swipe => ({ memeId, direction })),
     add: (userId, swipe) => {
-      swipesByUser.set(userId, [...(swipesByUser.get(userId) ?? []), swipe]);
+      const stored: StoredSwipe = { memeId: swipe.memeId, direction: swipe.direction, swipedAt: now() };
+      swipesByUser.set(userId, [...(swipesByUser.get(userId) ?? []), stored]);
     },
     clearByUser: (userId) => {
       swipesByUser.delete(userId);
@@ -42,6 +59,19 @@ export function createInMemorySwipeRepository(): SwipeRepository {
         }
       }
       return counts;
+    },
+    countAllByMemeSince: (since) => {
+      const countsByMeme = new Map<string, SwipeCounts>();
+      for (const swipes of swipesByUser.values()) {
+        for (const swipe of swipes) {
+          if (swipe.swipedAt < since) continue;
+          const counts = countsByMeme.get(swipe.memeId) ?? { likes: 0, swipes: 0 };
+          counts.swipes += 1;
+          if (swipe.direction === "like") counts.likes += 1;
+          countsByMeme.set(swipe.memeId, counts);
+        }
+      }
+      return countsByMeme;
     },
   };
 }

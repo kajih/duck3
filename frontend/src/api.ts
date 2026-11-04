@@ -31,13 +31,16 @@ export interface ProfileSettings {
   nicknameMaxLength: number;
 }
 
-/** A failed request. `serverMessage` is the API's user-facing `error`, when it sent one. */
+/**
+ * A failed request. `serverMessage` is the API's user-facing `error`, when it sent one; the
+ * message is that text, or "Request failed (HTTP n)" when there was none (for example a proxy error).
+ */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly serverMessage?: string,
   ) {
-    super(`Request failed (HTTP ${status})`);
+    super(serverMessage ?? `Request failed (HTTP ${status})`);
   }
 }
 
@@ -144,4 +147,24 @@ export async function redeemDeviceLink(code: string): Promise<void> {
 /** Removes all of the user's swipes, including likes. */
 export async function resetSwipes(): Promise<void> {
   await request("/api/swipes", { method: "DELETE" });
+}
+
+/** FileReader works in browsers and the test DOM, including browsers without File.text(). */
+function readFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Unable to read this file. Please choose it again."));
+    reader.onabort = () => reject(new Error("Reading the file was cancelled."));
+    reader.readAsText(file, "UTF-8");
+  });
+}
+
+export async function postMeme(file: File, caption: string): Promise<Meme> {
+  const { meme } = await request<{ meme: Meme }>(`/api/memes?caption=${encodeURIComponent(caption.trim())}`, {
+    method: "POST",
+    headers: { "Content-Type": "image/svg+xml" },
+    body: await readFile(file),
+  });
+  return meme;
 }

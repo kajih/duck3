@@ -46,10 +46,33 @@ Run `npm run lint` and `npm run format:check` before opening a PR; use `npm run 
 
 ## API
 
+### Posting SVG memes
+
+The Post tab accepts an SVG image up to 5 MiB, with at most 2000 elements nested at most 32 levels deep, and a nonempty caption of at most 500 characters.
+Unsafe SVGs are rejected without modification: scripts, event handlers, external references,
+CSS/style attributes, embedded HTML, animation and embedded images are unsupported. Passive SVG
+shapes, text and presentation attributes are supported. Uploaded images are served as images with
+a restrictive Content Security Policy and `nosniff`.
+
+`POST /api/memes?caption=...` takes a raw `image/svg+xml` body and `X-User-Id`, returning
+`201 { "meme": { "id": "...", "caption": "...", "imageUrl": "...", "stats": { ... } } }`.
+Missing captions, invalid SVGs and files over the limit return `400 { "error": "..." }`.
+`GET /api/memes/:id` returns the meme with current statistics (`404` when unknown); its
+`imageUrl` is served by `GET /api/memes/:id/image.svg`.
+
+Uploaded and seed images are stored in the same SQLite file as swipes (`DATABASE_PATH`).
+They survive backend and Docker restarts through the existing data volume. Seed IDs remain
+stable and are inserted once, preserving existing likes. Duplicate matching is tracked in #9.
+
+### Swipe API
+
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
 
 | Endpoint                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/memes?caption=...`   | Raw SVG image body; `201 { meme }`, `400` for invalid input or size                                                                                                                                                                                                                                                                                                                                                                                           |
+| `GET /api/memes/:id`            | A meme with current ratings, or `404`                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `GET /api/memes/:id/image.svg`  | Passive SVG image with restrictive CSP and nosniff headers                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `GET /api/memes/next`           | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped                                                                                                                                                                                                                                                                                                                                                  |
 | `POST /api/swipes`              | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                                                                                                                                                                                                                                                                                                                                                                        |
 | `GET /api/likes`                | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                                                                                                                                                                                                                                                                                                                                                            |

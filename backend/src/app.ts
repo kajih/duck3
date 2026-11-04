@@ -11,6 +11,8 @@ import {
 } from "./profiles/service.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { UnknownMemeError, type SwipeService } from "./swipes/service.js";
+import type { MemeService } from "./memes/service.js";
+import { ContentError } from "./memes/svg.js";
 
 const assetsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../assets/memes");
 
@@ -29,6 +31,7 @@ function isDirection(value: unknown): value is Direction {
 }
 
 export interface AppOptions {
+  memeService?: MemeService;
   /** Directory with the built frontend. When set, it is served as static files with an SPA fallback. */
   staticDir?: string;
 }
@@ -156,6 +159,39 @@ export function createApp(
     res.status(204).end();
   });
 
+  if (options.memeService) {
+    const memes = options.memeService;
+    app.post(
+      "/api/memes",
+      express.text({ type: "image/svg+xml", limit: "5mb", inflate: false }),
+      (req, res) => {
+        if (!requireUserId(req, res)) return;
+        if (!req.is("image/svg+xml")) throw new ContentError("Choose an SVG image");
+        const meme = memes.post(req.query.caption, req.body);
+        res.status(201).json({ meme: swipeService.getMeme(meme.id) });
+      },
+    );
+    app.get("/api/memes/:id/image.svg", (req, res) => {
+      const svg = memes.image(req.params.id);
+      if (svg === undefined) throw new ContentError("Meme not found", 404);
+      res
+        .set({
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Content-Security-Policy": "default-src 'none'; style-src 'none'; sandbox",
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "no-store",
+        })
+        .send(svg);
+    });
+    // Keep this after the fixed /memes/next route.
+    app.get("/api/memes/:id", (req, res) => {
+      if (!requireUserId(req, res)) return;
+      const meme = swipeService.getMeme(req.params.id);
+      if (!meme) throw new ContentError("Meme not found", 404);
+      res.json({ meme });
+    });
+  }
+
   // Built frontend (production only). Registered after the API routes and never answers /api paths.
   if (options.staticDir) {
     const staticDir = path.resolve(options.staticDir);
@@ -172,6 +208,14 @@ export function createApp(
 
   // Malformed JSON bodies and other client errors from middleware get a JSON error too.
   app.use((err: { status?: number; message?: string }, _req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof ContentError) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
+    if (err.status === 413) {
+      res.status(400).json({ error: "SVG must be 5 MB or smaller" });
+      return;
+    }
     const status = err.status && err.status < 500 ? err.status : 500;
     res.status(status).json({ error: status < 500 ? "Invalid request" : "Internal server error" });
   });

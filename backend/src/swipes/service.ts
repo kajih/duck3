@@ -49,6 +49,8 @@ export interface SwipeServiceOptions {
 }
 
 export interface SwipeService {
+  /** A catalog meme with up-to-date ratings, including already swiped memes. */
+  getMeme(memeId: string): RatedMeme | null;
   /** The next meme the user has not swiped yet, or null when all memes have been swiped. */
   getNextMeme(userId: string): RatedMeme | null;
   /**
@@ -93,6 +95,10 @@ export function createSwipeService(
   }
 
   return {
+    getMeme(memeId) {
+      const meme = catalog.getById(memeId);
+      return meme ? rate(meme) : null;
+    },
     getNextMeme(userId) {
       const seen = new Set(repository.listByUser(userId).map((swipe) => swipe.memeId));
       const meme = catalog.list().find((meme) => !seen.has(meme.id));

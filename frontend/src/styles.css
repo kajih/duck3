@@ -310,6 +310,7 @@ main {
 
 nav {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
@@ -697,4 +698,69 @@ nav button[aria-current="page"] {
   color: inherit;
   background: transparent;
   cursor: pointer;
+}
+
+.post-meme {
+  padding: 1rem;
+  text-align: left;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.post-meme h2 {
+  margin-top: 0;
+}
+
+.post-meme form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.post-meme label {
+  font-weight: 600;
+}
+
+.post-meme input,
+.post-meme textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.post-meme textarea {
+  resize: vertical;
+}
+
+.post-meme small {
+  color: #555;
+}
+
+.post-meme button {
+  margin-top: 0.4rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #2e9e5b;
+  cursor: pointer;
+}
+
+.post-meme button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.post-meme [role="alert"] {
+  color: #a12a2a;
+}
+
+.post-meme [role="status"] {
+  color: #226e40;
 }

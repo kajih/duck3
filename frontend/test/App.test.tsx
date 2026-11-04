@@ -153,6 +153,22 @@ describe("App", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
+  it("brings the card back without a stamp when recording a swipe fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(ok({ meme: first })).mockResolvedValueOnce({ ok: false, status: 500 }),
+    );
+    render(<App />);
+    await screen.findByRole("img", { name: first.caption });
+
+    fireEvent.click(screen.getByRole("button", { name: "Like" }));
+    expect(screen.getByText("LIKE")).toBeVisible();
+    await screen.findByRole("alert");
+
+    expect(screen.getByText("LIKE")).not.toBeVisible();
+    expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
+  });
+
   describe("likes view", () => {
     it("lists the liked memes when the Likes button is clicked", async () => {
       const fetchMock = vi

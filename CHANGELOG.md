@@ -7,6 +7,8 @@
 ### Added
 
 - Every meme card and liked meme shows how much people love it, for example "87% of people loved this", or "New meme" below 5 swipes; memes from `GET /api/memes/next` and `GET /api/likes` include `stats` (`likes`, `swipes`, `likePercent`) counted across all users, and `SwipeRepository` has `countByMeme` (kajih/duck3#11)
+- LIKE and NOPE stamps on the swipe card, large and diagonal across the meme image (sized from the card width): while dragging, the matching stamp fades in with the drag distance, and after a drag, button or arrow-key swipe a physical rubber stamp (wooden block and knob, seen from above) comes down, presses the stamp onto the meme and lifts away before the card flies out. Stamps and the stamp tool are `aria-hidden`, and with `prefers-reduced-motion` there is no stamp tool, the stamp appears in place and the card fades instead of flying. CSS only, no animation library (kajih/duck3#5)
+- Testing Library tests for which stamp shows for each direction and swipe input, the stamp tool, and the card coming back after a failed swipe (kajih/duck3#5)
 
 - Swipes and likes survive restarts: a SQLite swipe repository using Node's built-in `node:sqlite`, stored at `backend/data/meme-tinder.db` or `DATABASE_PATH`, with a `swiped_at` time per swipe for later stats; Docker keeps it on the `meme-data` volume; the backend closes the database on SIGINT/SIGTERM; shared contract tests for every `SwipeRepository` (kajih/duck3#2)
 
@@ -43,6 +45,9 @@
 - `.nvmrc` and `engines` requiring Node 22+ and npm 10+; README with requirements and quick start (#2)
 
 ### Changed
+
+- The meme card no longer clips its content (`overflow: hidden`), so the stamp tool can come down from outside it; the image has its own rounded top corners (kajih/duck3#5)
+- `MemeCard` calls `onSwipe` once the card has left (`SWIPE_EXIT_MS`, 750 ms: 450 ms stamping, 300 ms flying out) so the stamp can be seen, and ignores further swipes in the meantime; `onSwipe` may return a promise, and if the card is still shown when it settles (a failed swipe) the card comes back (kajih/duck3#5)
 
 - The backend requires Node 22.13 or newer (for `node:sqlite`); `deploy/README.md` now gives the correct `STATIC_DIR=../frontend/dist` for running the production setup locally (kajih/duck3#2)
 

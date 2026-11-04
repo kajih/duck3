@@ -8,6 +8,8 @@
 
 - SVG uploads with a caption, a 5 MiB limit, server-side validation, a Post form, durable storage beside existing swipes, rated detail responses and restrictive image headers (#8).
 
+- Shared ESLint checks for TypeScript conventions and React hooks, Prettier formatting commands, and required CI style checks; `AGENTS.md` directs Codex to the shared instructions in `CLAUDE.md` (#4).
+
 - Meme fingerprints for duplicate detection (`backend/src/memes/fingerprint.ts`), the groundwork for blocking duplicate posts: an image and caption count as the same meme when the SVG matches after ignoring formatting whitespace between elements, whitespace inside tags, attribute order and quote style (text spacing and visual properties still count) and the caption matches after trimming, collapsing whitespace and ignoring capitalization; meant to be stored with a unique index so concurrent duplicate posts cannot both be saved. Not wired to an endpoint yet, that waits for uploads in #8 (part of kajih/duck3#9)
 - CI with GitHub Actions: `npm ci`, `npm test` and `npm run build` on every pull request and push to `main`, with Node from `.nvmrc` and the npm cache; a CI badge and a Guardrails section in the README on requiring a green check and setting it up in branch protection (kajih/duck3#3)
 - Trending tab next to Likes with the top 10 memes people are loving right now: ranked by likes in the last 24 hours (falling back to all time when there were fewer than 10 swipes that day, and saying so on the page), with likes in the window, the like percentage, and gold, silver and bronze ranks; `GET /api/trending` and `SwipeRepository.countAllByMemeSince`, with a `swiped_at` index in SQLite and swipe times in the in-memory repository too (kajih/duck3#12)
@@ -54,6 +56,8 @@
 - `.nvmrc` and `engines` requiring Node 22+ and npm 10+; README with requirements and quick start (#2)
 
 ### Changed
+
+- Closed SQLite repositories before removing temporary test directories so the contract suite also runs on Windows (#4).
 
 - After a drag swipe the card leaves from where it was released instead of first jumping back to the middle; with `prefers-reduced-motion` it fades out there, starting at the swipe and ending as the next card appears. `MemeCard` passes the drag position to CSS as `--drag-x` and `--drag-rotate` instead of an inline `transform` (kajih/duck3#6)
 

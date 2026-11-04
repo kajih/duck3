@@ -47,20 +47,27 @@ export function validateSvg(svg: string): void {
       }
     }
   }
-  purify.sanitize(root.cloneNode(true), {
-    IN_PLACE: true,
-    USE_PROFILES: { svg: true, svgFilters: true },
-    FORBID_TAGS: [
-      "style",
-      "foreignObject",
-      "animate",
-      "animateMotion",
-      "animateTransform",
-      "set",
-      "image",
-      "a",
-    ],
-    FORBID_ATTR: ["style"],
-  });
-  if (purify.removed.length) throw new ContentError("SVG contains unsafe or unsupported content");
+  try {
+    purify.sanitize(root.cloneNode(true), {
+      IN_PLACE: true,
+      USE_PROFILES: { svg: true, svgFilters: true },
+      FORBID_TAGS: [
+        "style",
+        "foreignObject",
+        "animate",
+        "animateMotion",
+        "animateTransform",
+        "set",
+        "image",
+        "a",
+      ],
+      FORBID_ATTR: ["style"],
+    });
+  } catch {
+    throw new ContentError("SVG contains unsafe or unsupported content");
+  }
+  // Removing comments is safe; reject every removed attribute, element or processing instruction.
+  if (purify.removed.some((item) => "attribute" in item || item.element.nodeType !== 8)) {
+    throw new ContentError("SVG contains unsafe or unsupported content");
+  }
 }

@@ -27,17 +27,22 @@ Open http://localhost:5173, then swipe memes by dragging the card, with the Like
 
 ## Commands
 
-| Command         | What it does                              |
-| --------------- | ----------------------------------------- |
-| `npm run dev`   | Starts backend and frontend in watch mode |
-| `npm test`      | Runs all backend and frontend tests       |
-| `npm run build` | Builds both workspaces                    |
+| Command                | What it does                                  |
+| ---------------------- | --------------------------------------------- |
+| `npm run dev`          | Starts backend and frontend in watch mode     |
+| `npm test`             | Runs all backend and frontend tests           |
+| `npm run build`        | Builds both workspaces                        |
+| `npm run lint`         | Checks TypeScript conventions and React hooks |
+| `npm run format`       | Applies shared formatting                     |
+| `npm run format:check` | Checks shared formatting                      |
 
 ## Guardrails
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm ci`, `npm test` and `npm run build` on every pull request and on every push to `main`, with the Node version from `.nvmrc`. A failing test or a type error turns the check red. **Merge only with a green check.**
 
 To make GitHub enforce this, add a branch protection rule (or ruleset) for `main`: Settings → Branches → Add branch protection rule, branch name pattern `main`, tick "Require status checks to pass before merging" and pick the `Test and build` check (it shows up after the workflow has run once). In a fork, also enable Actions under the Actions tab and change the badge URL at the top of this README to your repository.
+
+Run `npm run lint` and `npm run format:check` before opening a PR; use `npm run format` to apply formatting. CI runs both checks alongside tests and build.
 
 ## API
 
@@ -63,13 +68,16 @@ stable and are inserted once, preserving existing likes. Duplicate matching is t
 
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
 
-| Endpoint              | Description                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /api/memes/next` | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped                                                 |
-| `POST /api/swipes`    | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                                                                       |
-| `GET /api/likes`      | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                                                           |
-| `DELETE /api/swipes`  | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                                                                 |
-| `GET /api/trending`   | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
+| Endpoint                       | Description                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /api/memes?caption=...`  | Raw SVG image body; `201 { meme }`, `400` for invalid input or size                                                                                          |
+| `GET /api/memes/:id`           | A meme with current ratings, or `404`                                                                                                                        |
+| `GET /api/memes/:id/image.svg` | Passive SVG image with restrictive CSP and nosniff headers                                                                                                   |
+| `GET /api/memes/next`          | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped                                                 |
+| `POST /api/swipes`             | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                                                                       |
+| `GET /api/likes`               | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                                                           |
+| `DELETE /api/swipes`           | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                                                                 |
+| `GET /api/trending`            | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
 
 Every meme in a response has `stats`: `{ "likes": 4, "swipes": 5, "likePercent": 80 }`, counted across all users. `likePercent` is rounded, and `null` until a meme has 5 swipes; the app then shows "New meme" instead of "80% of people loved this". A user's swipes stop counting when that user resets.
 

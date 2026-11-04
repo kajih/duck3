@@ -65,6 +65,14 @@ describe("SVG upload service", () => {
     expect(memes.list()).toEqual([posted]);
   });
 
+  it("accepts harmless XML comments and preserves the original image", () => {
+    const { memes } = setup();
+    const image =
+      '<svg xmlns="http://www.w3.org/2000/svg"><!-- artist notes: a red rectangle --><rect width="10" height="10" fill="red"/></svg>';
+    const posted = memes.post("Commented artwork", image);
+    expect(memes.image(posted.id)).toBe(image);
+  });
+
   it("accepts passive gradients and local fragment references", () => {
     const artwork =
       '<svg xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gradient"><stop offset="0" stop-color="red"/></linearGradient></defs><rect width="10" height="10" fill="url(#gradient)"/><text x="1" y="2">hello</text></svg>';
@@ -303,6 +311,16 @@ describe("SVG upload HTTP API", () => {
       .send(svg);
     expect(response.status).toBe(400);
     expect(response.body.error).toContain("SVG");
+  });
+
+  it("returns a friendly 400 rather than an internal error for an unsupported prefixed SVG root", async () => {
+    const { app, memes } = setup();
+    const image = '<s:svg xmlns:s="http://www.w3.org/2000/svg"><s:rect width="10" height="10"/></s:svg>';
+    const response = await post(app, image);
+    expect(response.status).toBe(400);
+    expect(response.body.error).toEqual(expect.any(String));
+    expect(response.body.error).not.toContain("root node is forbidden");
+    expect(memes.list()).toEqual([]);
   });
 
   it("rejects compressed uploads before parsing or storing their contents", async () => {

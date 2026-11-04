@@ -52,7 +52,9 @@ export function createSqliteSwipeRepository(
   db.exec(SCHEMA);
 
   const selectByUser = db.prepare("SELECT meme_id, direction FROM swipes WHERE user_id = ? ORDER BY id");
-  const insert = db.prepare("INSERT INTO swipes (user_id, meme_id, direction, swiped_at) VALUES (?, ?, ?, ?)");
+  const insert = db.prepare(
+    "INSERT INTO swipes (user_id, meme_id, direction, swiped_at) VALUES (?, ?, ?, ?)",
+  );
   const deleteByUser = db.prepare("DELETE FROM swipes WHERE user_id = ?");
   const countByMeme = db.prepare(
     "SELECT COUNT(*) AS swipes, COALESCE(SUM(direction = 'like'), 0) AS likes FROM swipes WHERE meme_id = ?",
@@ -63,9 +65,9 @@ export function createSqliteSwipeRepository(
 
   return {
     listByUser: (userId) =>
-      selectByUser.all(userId).map(
-        (row): Swipe => ({ memeId: String(row.meme_id), direction: toDirection(row.direction) }),
-      ),
+      selectByUser
+        .all(userId)
+        .map((row): Swipe => ({ memeId: String(row.meme_id), direction: toDirection(row.direction) })),
     add: (userId, swipe) => {
       insert.run(userId, swipe.memeId, swipe.direction, now());
     },

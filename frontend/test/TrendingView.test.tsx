@@ -15,7 +15,10 @@ function meme(id: string, windowLikes: number, likePercent: number | null = null
 
 describe("TrendingView", () => {
   it("lists the memes in the given order, ranked from 1", () => {
-    const trending: Trending = { window: "last-24-hours", memes: [meme("a", 8, 80), meme("b", 3), meme("c", 1)] };
+    const trending: Trending = {
+      window: "last-24-hours",
+      memes: [meme("a", 8, 80), meme("b", 3), meme("c", 1)],
+    };
 
     render(<TrendingView trending={trending} />);
 

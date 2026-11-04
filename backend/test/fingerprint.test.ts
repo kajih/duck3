@@ -7,7 +7,9 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect
 
 describe("normalizeCaption", () => {
   it("ignores leading and trailing whitespace, repeated whitespace and capitalization", () => {
-    expect(normalizeCaption("  It   works ON\tmy\nmachine ")).toBe(normalizeCaption("it works on my machine"));
+    expect(normalizeCaption("  It   works ON\tmy\nmachine ")).toBe(
+      normalizeCaption("it works on my machine"),
+    );
   });
 
   it("keeps different words different", () => {

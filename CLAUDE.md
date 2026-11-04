@@ -33,18 +33,18 @@ Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping
 
 Run from the repository root.
 
-| Command | What it does |
-| --- | --- |
-| `npm install` | Installs all workspaces |
-| `npm run dev` | Backend and frontend in watch mode (open http://localhost:5173) |
-| `npm test` | All backend and frontend tests (Vitest) |
-| `npm run build` | Builds both workspaces (type checks too) |
-| `npm run lint` | Checks TypeScript conventions and React hooks |
-| `npm run format` / `npm run format:check` | Applies / checks Prettier formatting |
-| `STATIC_DIR=../frontend/dist npm start -w backend` | After a build, runs the production setup (one process serving API and frontend on port 3000) |
-| `npm test -w backend` / `npm test -w frontend` | Tests for one workspace |
-| `npx vitest run test/service.test.ts` (inside a workspace folder) | One test file |
-| `npx vitest run -t "test name"` (inside a workspace folder) | Tests whose name matches |
+| Command                                                           | What it does                                                                                 |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `npm install`                                                     | Installs all workspaces                                                                      |
+| `npm run dev`                                                     | Backend and frontend in watch mode (open http://localhost:5173)                              |
+| `npm test`                                                        | All backend and frontend tests (Vitest)                                                      |
+| `npm run build`                                                   | Builds both workspaces (type checks too)                                                     |
+| `npm run lint`                                                    | Checks TypeScript conventions and React hooks                                                |
+| `npm run format` / `npm run format:check`                         | Applies / checks Prettier formatting                                                         |
+| `STATIC_DIR=../frontend/dist npm start -w backend`                | After a build, runs the production setup (one process serving API and frontend on port 3000) |
+| `npm test -w backend` / `npm test -w frontend`                    | Tests for one workspace                                                                      |
+| `npx vitest run test/service.test.ts` (inside a workspace folder) | One test file                                                                                |
+| `npx vitest run -t "test name"` (inside a workspace folder)       | Tests whose name matches                                                                     |
 
 Run `npm test`, `npm run build`, `npm run lint` and `npm run format:check` before you finish a change. ESLint checks TypeScript conventions and React hooks; Prettier checks formatting. Use `npm run format` to apply formatting.
 

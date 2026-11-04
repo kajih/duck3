@@ -1,5 +1,7 @@
 # Meme-Tinder
 
+[![CI](https://github.com/kajih/duck3/actions/workflows/ci.yml/badge.svg)](https://github.com/kajih/duck3/actions/workflows/ci.yml)
+
 Tinder but for memes
 
 A proof of concept that workshop teams fork and extend. It is an npm workspaces monorepo:
@@ -30,6 +32,12 @@ Open http://localhost:5173, then swipe memes by dragging the card, with the Like
 | `npm run dev`   | Starts backend and frontend in watch mode     |
 | `npm test`      | Runs all backend and frontend tests           |
 | `npm run build` | Builds both workspaces                        |
+
+## Guardrails
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm ci`, `npm test` and `npm run build` on every pull request and on every push to `main`, with the Node version from `.nvmrc`. A failing test or a type error turns the check red. **Merge only with a green check.**
+
+To make GitHub enforce this, add a branch protection rule (or ruleset) for `main`: Settings → Branches → Add branch protection rule, branch name pattern `main`, tick "Require status checks to pass before merging" and pick the `Test and build` check (it shows up after the workflow has run once). In a fork, also enable Actions under the Actions tab and change the badge URL at the top of this README to your repository.
 
 ## API
 

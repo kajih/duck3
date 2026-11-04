@@ -50,8 +50,12 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 | `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
 | `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
 | `GET /api/trending`     | `200 { "window": "last-24-hours" \| "all-time", "memes": [...] }` with the top 10 memes across all users, most liked first; each meme also has `windowLikes` |
+| `GET /api/profile`     | `200 { "profile": { "id", "nickname", "emoji" }, "emojiChoices": [...], "nicknameMaxLength": 24 }`. A user without a profile gets one with a generated nickname and emoji |
+| `PUT /api/profile`     | Body `{ "nickname": "...", "emoji": "🦄" }`. `200 { "profile": {...} }`; `400` with a user-facing `error` for an empty or too long nickname or an emoji not in `emojiChoices` |
 
 Every meme in a response has `stats`: `{ "likes": 4, "swipes": 5, "likePercent": 80 }`, counted across all users. `likePercent` is rounded, and `null` until a meme has 5 swipes; the app then shows "New meme" instead of "80% of people loved this". A user's swipes stop counting when that user resets.
+
+Every user has a profile with a nickname and an emoji, created on first use, so people who swiped before profiles existed keep all their swipes and likes. The profile `id` is a public id meant to be shown to other people later; the `X-User-Id` value is a secret that only the user's own device knows, and no endpoint returns it.
 
 Trending ranks memes by likes in the last 24 hours, then by the share of likes in that time, then in catalog order, and lists only memes with at least one like there. When the last 24 hours have fewer than 10 swipes in total, it falls back to all time, and `window` is `"all-time"`. `windowLikes` is the number of likes in the window; `stats` is all time, as everywhere else. The Trending tab shows which window it uses.
 

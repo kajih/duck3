@@ -1,6 +1,20 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchProfile, updateProfile } from "../src/api";
 import { App } from "../src/App";
+
+// The profile loads separately from the memes. Mocking it keeps the fetch order in these tests about memes.
+vi.mock("../src/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/api")>()),
+  fetchProfile: vi.fn(),
+  updateProfile: vi.fn(),
+}));
+
+const profileSettings = {
+  profile: { id: "public-1", nickname: "Giggling Otter", emoji: "🦦" },
+  emojiChoices: ["🦦", "🐸", "🦄"],
+  nicknameMaxLength: 24,
+};
 
 const newMeme = { likes: 0, swipes: 0, likePercent: null };
 const first = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg", stats: newMeme };
@@ -8,7 +22,15 @@ const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/image
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
 
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => {
+  vi.mocked(fetchProfile).mockResolvedValue(profileSettings);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(fetchProfile).mockReset();
+  vi.mocked(updateProfile).mockReset();
+});
 
 describe("App", () => {
   it("shows the meme returned by the backend", async () => {
@@ -316,6 +338,39 @@ describe("App", () => {
       fireEvent.click(screen.getByRole("button", { name: "Trending" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong");
+    });
+  });
+
+  describe("profile", () => {
+    it("shows the profile's emoji and nickname in the header", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      render(<App />);
+
+      expect(await screen.findByRole("button", { name: /Giggling Otter/ })).toHaveTextContent("🦦");
+    });
+
+    it("saves a new nickname and emoji and shows them", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      vi.mocked(updateProfile).mockResolvedValue({ id: "public-1", nickname: "Meme Queen", emoji: "🦄" });
+      render(<App />);
+
+      fireEvent.click(await screen.findByRole("button", { name: /Giggling Otter/ }));
+      fireEvent.change(screen.getByLabelText("Nickname"), { target: { value: "Meme Queen" } });
+      fireEvent.click(screen.getByRole("radio", { name: "🦄" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("button", { name: /Meme Queen/ })).toHaveTextContent("🦄");
+      expect(updateProfile).toHaveBeenCalledWith("Meme Queen", "🦄");
+      expect(screen.queryByRole("form", { name: "Your profile" })).not.toBeInTheDocument();
+    });
+
+    it("keeps working without a profile when loading it fails", async () => {
+      vi.mocked(fetchProfile).mockRejectedValue(new Error("down"));
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+      render(<App />);
+
+      expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
 });

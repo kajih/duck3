@@ -2,11 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchLikes,
   fetchNextMeme,
+  fetchProfile,
   fetchTrending,
   resetSwipes,
   sendSwipe,
+  updateProfile,
   type Direction,
   type Meme,
+  type ProfileSettings,
   type Trending,
 } from "./api";
 import { CelebrationBurst } from "./CelebrationBurst";
@@ -14,6 +17,7 @@ import { NO_PROGRESS, recordSwipe, type Celebration, type SwipeProgress } from "
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
+import { ProfilePanel } from "./ProfilePanel";
 import { TrendingView } from "./TrendingView";
 
 type View = "swipe" | "likes" | "trending";
@@ -28,6 +32,19 @@ export function App() {
   /** Whether the shown card follows a swipe, so it plays the entrance animation. */
   const [enterNext, setEnterNext] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileSettings, setProfileSettings] = useState<ProfileSettings | null>(null);
+
+  useEffect(() => {
+    // The profile is a nice extra: without it (for example a failed request) the app still works.
+    fetchProfile().then(setProfileSettings, () => {});
+  }, []);
+
+  async function saveProfile(nickname: string, emoji: string) {
+    const profile = await updateProfile(nickname, emoji);
+    setProfileSettings((settings) => settings && { ...settings, profile });
+    return profile;
+  }
+
   /** Swipes and the like streak in this session, for the celebrations. */
   const [progress, setProgress] = useState<SwipeProgress>(NO_PROGRESS);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
@@ -109,7 +126,12 @@ export function App() {
 
   return (
     <main>
-      <h1>Meme-Tinder</h1>
+      <header className="app-header">
+        <h1>Meme-Tinder</h1>
+        {profileSettings && (
+          <ProfilePanel key={profileSettings.profile.id} settings={profileSettings} onSave={saveProfile} />
+        )}
+      </header>
       <nav>
         <button type="button" aria-current={view === "swipe" ? "page" : undefined} onClick={showSwipe}>
           Swipe
